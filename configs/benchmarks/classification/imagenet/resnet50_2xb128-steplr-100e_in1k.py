@@ -1,7 +1,7 @@
 _base_ = [
     '../_base_/models/resnet50.py',
     '../_base_/datasets/imagenet_b128.py',
-    '../_base_/schedules/sgd_steplr-100e.py',
+    '../_base_/schedules/sgd_steplr-100e_mclr.py',
     '../_base_/default_runtime.py',
 ]
 
