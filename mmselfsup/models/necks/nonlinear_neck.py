@@ -88,9 +88,6 @@ class NonLinearNeck(BaseModule):
             self.fc_names.append(f'fc{i}')
 
     def forward(self, x):
-        if(len(x)) != 1:
-            print(len(x))
-            print(x)
         assert len(x) == 1
         x = x[0]
         if self.with_avg_pool:
