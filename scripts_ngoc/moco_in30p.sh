@@ -12,7 +12,7 @@ echo "CONTAINER_IMAGE=nvcr.io/nvidia/pytorch:20.06-py3"
 cd "$PBS_O_WORKDIR" || exit $?
 echo ${PBS_O_WORKDIR}
 
-USER=dinh_anh_dung # Replace with your own HPC account name
+USER=thibaongoc_nguyen # Replace with your own HPC account name
 
 nvidia-smi
 
