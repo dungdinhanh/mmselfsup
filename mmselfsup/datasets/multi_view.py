@@ -62,3 +62,61 @@ class MultiViewDataset(BaseDataset):
 
     def evaluate(self, results, logger=None):
         return NotImplemented
+
+
+import random
+
+
+@DATASETS.register_module()
+class MultiViewDatasetwNegative(MultiViewDataset):
+    """The dataset outputs multiple views of an image, and a view of a different batch.
+
+    The number of views in the output dict depends on `num_views`. The
+    image can be processed by one pipeline or multiple piepelines.
+
+    Args:
+        data_source (dict): Data source defined in
+            `mmselfsup.datasets.data_sources`.
+        num_views (list): The number of different views.
+        pipelines (list[list[dict]]): A list of pipelines, where each pipeline
+            contains elements that represents an operation defined in
+            `mmselfsup.datasets.pipelines`.
+        prefetch (bool, optional): Whether to prefetch data. Defaults to False.
+
+    Examples:
+        >>> dataset = MultiViewDataset(data_source, [2], [pipeline])
+        >>> output = dataset[idx]
+        The output got 2 views processed by one pipeline.
+
+        >>> dataset = MultiViewDataset(
+        >>>     data_source, [2, 6], [pipeline1, pipeline2])
+        >>> output = dataset[idx]
+        The output got 8 views processed by two pipelines, the first two views
+        were processed by pipeline1 and the remaining views by pipeline2.
+    """
+
+    def __init__(self, data_source, num_views, pipelines, prefetch=False):
+        super(MultiViewDatasetwNegative, self).__init__(data_source, num_views, pipelines, prefetch)
+        self.num_images = len(self.data_source)
+
+    def __getitem__(self, idx):
+        img = self.data_source.get_img(idx)
+        diff_idx = random.randint(0, self.num_images-1)
+        if diff_idx == idx:
+            if diff_idx == 0:
+                diff_idx += 1
+            else:
+                diff_idx -= 1
+        neg_img = self.data_source.get_img(diff_idx)
+        multi_views = list(map(lambda trans: trans(img), self.trans))
+        neg_views = list(map(lambda pipelines: pipelines(neg_img), self.pipelines))
+        all_views = multi_views + neg_views
+        if self.prefetch:
+            all_views = [
+                torch.from_numpy(to_numpy(img)) for img in all_views
+            ]
+
+        return dict(img=all_views)
+
+    def evaluate(self, results, logger=None):
+        return NotImplemented
