@@ -24,7 +24,7 @@ if not prefetch:
 # dataset summary
 data = dict(
     imgs_per_gpu=128,  # total 2x128=256, 2GPU linear cls
-    workers_per_gpu=8,
+    workers_per_gpu=4,
     train=dict(
         type=dataset_type,
         data_source=dict(

@@ -184,3 +184,134 @@ def train_model(model,
     elif cfg.load_from:
         runner.load_checkpoint(cfg.load_from)
     runner.run(data_loaders, cfg.workflow)
+
+
+def train_model_kd(model,
+                   t_model,
+                dataset,
+                cfg,
+                distributed=False,
+                timestamp=None,
+                meta=None):
+    logger = get_root_logger(cfg.log_level)
+
+    # prepare data loaders
+    dataset = dataset if isinstance(dataset, (list, tuple)) else [dataset]
+
+    data_loaders = [
+        build_dataloader(
+            ds,
+            cfg.data.imgs_per_gpu,
+            cfg.data.workers_per_gpu,
+            # cfg.gpus will be ignored if distributed
+            num_gpus=len(cfg.gpu_ids),
+            dist=distributed,
+            replace=getattr(cfg.data, 'sampling_replace', False),
+            seed=cfg.seed,
+            drop_last=getattr(cfg.data, 'drop_last', False),
+            prefetch=cfg.prefetch,
+            persistent_workers=cfg.persistent_workers,
+            img_norm_cfg=cfg.img_norm_cfg) for ds in dataset
+    ]
+
+    # put model on gpus
+    if distributed:
+        find_unused_parameters = cfg.get('find_unused_parameters', False)
+        # Sets the `find_unused_parameters` parameter in
+        # torch.nn.parallel.DistributedDataParallel
+        model = MMDistributedDataParallel(
+            model if next(model.parameters()).is_cuda else model.cuda(),
+            device_ids=[torch.cuda.current_device()],
+            broadcast_buffers=False,
+            find_unused_parameters=find_unused_parameters)
+
+        t_model = MMDistributedDataParallel(
+            t_model if next(t_model.parameters()).is_cuda else t_model.cuda(),
+            device_ids=[torch.cuda.current_device()],
+            broadcast_buffers=False,
+            find_unused_parameters=find_unused_parameters)
+    else:
+        model = MMDataParallel(
+            model.cuda(cfg.gpu_ids[0]), device_ids=cfg.gpu_ids)
+        t_model = MMDataParallel(
+            t_model.cuda(cfg.gpu_ids[0]), device_ids=cfg.gpu_ids)
+
+    # build optimizer
+    optimizer = build_optimizer(model, cfg.optimizer)
+
+    # build runner
+    runner = build_runner(
+        cfg.runner,
+        default_args=dict(
+            model=model,
+            t_model=t_model.module,
+            optimizer=optimizer,
+            work_dir=cfg.work_dir,
+            logger=logger,
+            meta=meta))
+
+    # an ugly walkaround to make the .log and .log.json filenames the same
+    runner.timestamp = timestamp
+
+    # fp16 setting
+    fp16_cfg = cfg.get('fp16', None)
+    if fp16_cfg is not None:
+        optimizer_config = GradAccumFp16OptimizerHook(
+            **cfg.optimizer_config, **fp16_cfg, distributed=distributed)
+    elif distributed and 'type' not in cfg.optimizer_config or \
+            'frozen_layers_cfg' in cfg.optimizer_config:
+        optimizer_config = DistOptimizerHook(**cfg.optimizer_config)
+    else:
+        optimizer_config = cfg.optimizer_config
+
+    # register hooks
+    runner.register_training_hooks(cfg.lr_config, optimizer_config,
+                                   cfg.checkpoint_config, cfg.log_config)
+    if distributed:
+        runner.register_hook(DistSamplerSeedHook())
+
+    # register custom hooks
+    if cfg.get('custom_hooks', None):
+        custom_hooks = cfg.custom_hooks
+        assert isinstance(custom_hooks, list), \
+            f'custom_hooks expect list type, but got {type(custom_hooks)}'
+        for hook_cfg in cfg.custom_hooks:
+            assert isinstance(hook_cfg, dict), \
+                'Each item in custom_hooks expects dict type, but got ' \
+                f'{type(hook_cfg)}'
+            if hook_cfg.type == 'DeepClusterHook':
+                common_params = dict(dist_mode=True, data_loaders=data_loaders)
+            else:
+                common_params = dict(dist_mode=True)
+            hook_cfg = hook_cfg.copy()
+            priority = hook_cfg.pop('priority', 'NORMAL')
+            hook = build_from_cfg(hook_cfg, HOOKS, common_params)
+            runner.register_hook(hook, priority=priority)
+
+    # register evaluation hook
+    if cfg.get('evaluation', None):
+        val_dataset = build_dataset(cfg.data.val)
+        val_dataloader = build_dataloader(
+            val_dataset,
+            imgs_per_gpu=cfg.data.imgs_per_gpu,
+            workers_per_gpu=cfg.data.workers_per_gpu,
+            dist=distributed,
+            shuffle=False,
+            prefetch=cfg.data.val.prefetch,
+            img_norm_cfg=cfg.get('img_norm_cfg', dict()))
+        eval_cfg = cfg.get('evaluation', {})
+        eval_cfg['by_epoch'] = cfg.runner['type'] != 'IterBasedRunner'
+        eval_hook = DistEvalHook if distributed else EvalHook
+        eval_fn = multi_gpu_test if distributed else single_gpu_test
+        # `EvalHook` needs to be executed after `IterTimerHook`.
+        # Otherwise, it will cause a bug if use `IterBasedRunner`.
+        # Refers to https://github.com/open-mmlab/mmcv/issues/1261
+        runner.register_hook(
+            eval_hook(val_dataloader, test_fn=eval_fn, **eval_cfg),
+            priority='LOW')
+
+    if cfg.resume_from:
+        runner.resume(cfg.resume_from)
+    elif cfg.load_from:
+        runner.load_checkpoint(cfg.load_from)
+    runner.run(data_loaders, cfg.workflow)

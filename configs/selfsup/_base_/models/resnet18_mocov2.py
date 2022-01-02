@@ -12,8 +12,8 @@ model = dict(
         norm_cfg=dict(type='BN')),
     neck=dict(
         type='MoCoV2Neck',
-        in_channels=2048,
-        hid_channels=2048,
+        in_channels=512,
+        hid_channels=512,
         out_channels=128,
         with_avg_pool=True),
     head=dict(type='ContrastiveHead', temperature=0.2))
