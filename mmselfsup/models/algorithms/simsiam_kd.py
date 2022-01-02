@@ -82,11 +82,11 @@ class SimSiamKD(BaseModel):
         zt1 = self.teacher.encoder(img_v1)[0]
         zt2 = self.teacher.encoder(img_v2)[0]
 
-        teacher_loss1 = self.teacher.head(zt1, zt2)['loss']
-        teacher_loss2 = self.teacher.head(zt2, zt1)['loss']
+        teacher_loss1 = self.teacher.head(zt1, zt2)['cossim']
+        teacher_loss2 = self.teacher.head(zt2, zt1)['cossim']
 
-        losses = 0.5 * (nn.functional.mse_loss(self.head(z1, z2)['loss'], teacher_loss1) +
-                        nn.functional.mse_loss(self.head(z2, z1)['loss'], teacher_loss2))
+        losses = 0.5 * (nn.functional.mse_loss(self.head(z1, z2)['cossim'], teacher_loss1) +
+                        nn.functional.mse_loss(self.head(z2, z1)['cossim'], teacher_loss2))
         return dict(loss=losses)
 
     def train_step(self, data, optimizer, teacher_model):
