@@ -1,6 +1,6 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import torch.nn as nn
-
+import time
 from ..builder import ALGORITHMS, build_backbone, build_head, build_neck, build_algorithm
 from mmcv.runner.checkpoint import load_checkpoint
 from .base import BaseModel
@@ -82,8 +82,9 @@ class SimSiamKD(BaseModel):
         zt1 = self.teacher.encoder(img_v1)[0]
         zt2 = self.teacher.encoder(img_v2)[0]
 
-        teacher_loss1 = self.teacher.head(zt1, zt2)['cossim']
-        teacher_loss2 = self.teacher.head(zt2, zt1)['cossim']
+        teacher_loss1 = self.teacher.head(zt1, zt2)['cossim'].detach()
+        teacher_loss2 = self.teacher.head(zt2, zt1)['cossim'].detach()
+
 
         losses = 0.5 * (nn.functional.mse_loss(self.head(z1, z2)['cossim'], teacher_loss1) +
                         nn.functional.mse_loss(self.head(z2, z1)['cossim'], teacher_loss2))
