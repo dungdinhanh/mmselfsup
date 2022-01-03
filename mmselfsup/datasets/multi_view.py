@@ -98,6 +98,7 @@ class MultiViewDatasetwNegative(MultiViewDataset):
     def __init__(self, data_source, num_views, pipelines, prefetch=False):
         super(MultiViewDatasetwNegative, self).__init__(data_source, num_views, pipelines, prefetch)
         self.num_images = len(self.data_source)
+        print("Total number of images: %d"%self.num_images)
 
     def __getitem__(self, idx):
         img = self.data_source.get_img(idx)

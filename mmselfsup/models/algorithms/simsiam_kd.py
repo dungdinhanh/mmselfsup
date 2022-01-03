@@ -177,6 +177,59 @@ class SimSiamKD_GT(SimSiamKD):
         losses = loss_kd + loss_student
         return dict(loss=losses)
 
+@ALGORITHMS.register_module()
+class SimSiamKD_wNeg(SimSiamKD):
+    def __init__(self,
+                 backbone,
+                 neck=None,
+                 head=None,
+                 init_cfg=None,
+                 **kwargs):
+        super(SimSiamKD_wNeg, self).__init__(
+            backbone,
+            neck=neck,
+            head=head,
+            init_cfg=init_cfg,
+            **kwargs
+        )
+
+
+    def forward_train(self, img):
+        """Forward computation during training.
+
+        Args:
+            img (list[Tensor]): A list of input images with shape
+                (N, C, H, W). Typically these should be mean centered
+                and std scaled.
+        Returns:
+            loss[str, Tensor]: A dictionary of loss components
+        """
+        assert isinstance(img, list)
+        self.teacher.eval()
+        img_v1 = img[0]
+        img_v2 = img[1]
+        neg_img = img[2]
+
+        z1 = self.encoder(img_v1)[0]  # NxC
+        z2 = self.encoder(img_v2)[0]  # NxC
+        z3 = self.encoder(neg_img)[0]
+
+        zt1 = self.teacher.encoder(img_v1)[0]
+        # zt2 = self.teacher.encoder(img_v2)[0]
+        zt3 = self.teacher.encoder(neg_img)[0]
+
+        teacher_loss1 = self.teacher.head(zt1, zt3)['cossim']
+        teacher_loss3 = self.teacher.head(zt3, zt1)['cossim']
+
+        student_output1 = self.head(z1, z2)
+        student_output2 = self.head(z2, z1)
+        student_output3 = self.head(z1, z3)
+
+        loss_kd = 0.5 * (nn.functional.mse_loss(student_output1['cossim'], teacher_loss1) +
+                        nn.functional.mse_loss(student_output3['cossim'], teacher_loss3))
+        loss_student = 0.5 * (student_output1['loss'] + student_output2['loss'])
+        losses = loss_kd + loss_student
+        return dict(loss=losses)
 
 
 @ALGORITHMS.register_module()
