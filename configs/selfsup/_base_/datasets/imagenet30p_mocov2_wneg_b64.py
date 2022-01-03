@@ -37,8 +37,8 @@ data = dict(
         type=dataset_type,
         data_source=dict(
             type=data_source,
-            data_prefix='../../scratch/dso/datasets/imagenet/images/train',
-            ann_file='../../scratch/dso/datasets/imagenet/meta/train_IN30p.txt',
+            data_prefix='data/imagenet/images/train',
+            ann_file='data/imagenet/meta/train_IN30p.txt',
         ),
         num_views=[2],
         pipelines=[train_pipeline],
