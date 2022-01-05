@@ -71,8 +71,8 @@ def main():
     args = parse_args()
 
     cfg = Config.fromfile(args.config)
-    if cfg.model.type in ['SimSiamKD', 'SimSiamKD_PredMatching', 'SimSiamKD_wNeg', 'SimSiamKD_GT']:
-        cfg.model.teacher_path = args.teacher_path
+    # if cfg.model.type in ['SimSiamKD', 'SimSiamKD_PredMatching', 'SimSiamKD_wNeg', 'SimSiamKD_GT']:
+    cfg.model.teacher_path = args.teacher_path
 
     if args.cfg_options is not None:
         cfg.merge_from_dict(args.cfg_options)

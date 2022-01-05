@@ -10,7 +10,7 @@ data = dict(
         type='SingleViewDataset',
         data_source=dict(
             type=data_source,
-            data_prefix='data/imagenet/val',
+            data_prefix='data/imagenet/images/val',
             ann_file='data/imagenet/meta/val.txt',
         ),
         pipeline=[

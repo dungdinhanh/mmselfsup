@@ -23,7 +23,8 @@ class MultiPooling(BaseModule):
             dict(kernel_size=6, stride=1, padding=0)
         ]
     }
-    POOL_SIZES = {'resnet50': [12, 6, 4, 3, 2]}
+    # POOL_SIZES = {'resnet50': [12, 6, 4, 3, 2]}
+    POOL_SIZES = {'resnet50': [12, 6, 4, 3, 1]} # Fix to 1 here
     POOL_DIMS = {'resnet50': [9216, 9216, 8192, 9216, 8192]}
 
     def __init__(self,

@@ -342,3 +342,67 @@ class SimSiamKD_PredMatching(SimSiamKD):
         loss_kd = kdloss(output_project1[0], output_thead1) + kdloss(output_project2[0], output_thead2)
         losses = 0.5 * loss_kd + 0.5 * loss_simsiam
         return dict(loss=losses)
+
+
+@ALGORITHMS.register_module()
+class SimDis_Siam_simplified(SimSiamKD):
+    def __init__(self,
+                 backbone,
+                 neck=None,
+                 head=None,
+                 init_cfg=None,
+                 **kwargs):
+        super(SimDis_Siam_simplified, self).__init__(
+            backbone,
+            neck=neck,
+            head=head,
+            init_cfg=init_cfg,
+            **kwargs
+        )
+
+
+    def forward_train(self, img):
+        """Forward computation during training.
+
+        Args:
+            img (list[Tensor]): A list of input images with shape
+                (N, C, H, W). Typically these should be mean centered
+                and std scaled.
+        Returns:
+            loss[str, Tensor]: A dictionary of loss components
+        """
+        assert isinstance(img, list)
+        self.teacher.eval()
+        img_v1 = img[0]
+        img_v2 = img[1]
+
+        z1 = self.encoder(img_v1)[0]  # NxC
+        z2 = self.encoder(img_v2)[0]  # NxC
+
+        zt1 = self.teacher.encoder(img_v1)[0]
+        zt2 = self.teacher.encoder(img_v2)[0]
+
+        p1 = self.head(z1, z2, loss_cal = False)
+        p2 = self.head(z2, z1, loss_cal = False)
+
+        pt1 = self.teacher.head(zt1, zt2, loss_cal=False)
+        pt2 = self.teacher.head(zt2, zt1, loss_cal=False)
+
+        simsiam_loss = 0.5 * (cosine_sim(p1, z2) + cosine_sim(p2, z1))
+        distillation_loss1 = cosine_sim(p1, pt2) + cosine_sim(p1, zt2)
+        distillation_loss2 = cosine_sim(p2, pt1) + cosine_sim(p2, zt1)
+
+        distillation_loss = 0.5 * (distillation_loss1 + distillation_loss2)
+
+        losses = simsiam_loss + distillation_loss
+
+        return dict(loss=losses)
+
+
+def cosine_sim(input, target):
+    target = target.detach()
+    pred_norm = nn.functional.normalize(input, dim=1)
+    target_norm = nn.functional.normalize(target, dim=1)
+    cs_sim = -(pred_norm * target_norm).sum(dim=1)
+    loss = cs_sim.mean()
+    return loss
