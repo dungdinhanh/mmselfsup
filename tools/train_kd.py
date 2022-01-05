@@ -145,7 +145,7 @@ def main():
     model.init_weights()
 
     t_model = build_algorithm(cfg.model.teacher)
-    load_checkpoint(t_model, cfg.model.teacher_path, None, strict=False, revise_keys=[(r'^module.', '')])
+    load_checkpoint(t_model, cfg.model.teacher_path, None, strict=True, revise_keys=[(r'^module.', '')])
 
     datasets = [build_dataset(cfg.data.train)]
     assert len(cfg.workflow) == 1, 'Validation is called by hook.'
