@@ -1,6 +1,6 @@
 # model settings
 model = dict(
-    type='SimSiamKD_PredMatching',
+    type='SimSiamKD_wNeg',
     backbone=dict(
         type='ResNet',
         depth=18,
@@ -26,15 +26,6 @@ model = dict(
             with_avg_pool=False,
             with_last_bn=False,
             with_last_bias=True)
-    ),
-    teacher_project=dict(
-        type='NonLinearNeck',
-        in_channels=512,
-        hid_channels=1024,
-        out_channels=2048,
-        with_avg_pool=False,
-        with_last_bn=False,
-        with_last_bias=True
     ),
     teacher=dict(
                 type='SimSiam',

@@ -2,6 +2,7 @@
 import argparse
 import os.path as osp
 import time
+import os
 
 import matplotlib.pyplot as plt
 import mmcv
@@ -42,7 +43,7 @@ def parse_args():
     parser.add_argument(
         '--max_num_class',
         type=int,
-        default=20,
+        default=100,
         help='the maximum number of classes to apply t-SNE algorithms, now the'
         'function supports maximum 20 classes')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
@@ -105,7 +106,8 @@ def parse_args():
 
 def main():
     args = parse_args()
-
+    if 'LOCAL_RANK' not in os.environ:
+        os.environ['LOCAL_RANK'] = str(args.local_rank)
     cfg = Config.fromfile(args.config)
     if args.cfg_options is not None:
         cfg.merge_from_dict(args.cfg_options)
@@ -173,7 +175,7 @@ def main():
         logger.info(
             f'Use pretrained model: '
             f'{cfg.model.backbone.init_cfg.checkpoint} to extract features')
-    elif args.checkpoint is not None:
+    if args.checkpoint is not None:
         logger.info(f'Use checkpoint: {args.checkpoint} to extract features')
         load_checkpoint(model, args.checkpoint, map_location='cpu')
     else:
@@ -189,7 +191,7 @@ def main():
 
     # build extraction processor and run
     extractor = ExtractProcess(
-        pool_type='specified', backbone='resnet50', layer_indices=layer_ind)
+        pool_type='adaptive', backbone='resnet50', layer_indices=layer_ind)
     features = extractor.extract(model, data_loader, distributed=distributed)
     labels = dataset.data_source.get_gt_labels()
 
@@ -208,34 +210,19 @@ def main():
             output_file = \
                 f'{tsne_work_dir}features/{dataset_cfg.name}_{key}.npy'
             np.save(output_file, val)
+    if distributed:
+        rank, _ = get_dist_info()
+        if rank == 0:
+            print(features['feat5'].shape)
+            cov_features = np.cov(np.transpose(features['feat5']))
+            _, s, _ = np.linalg.svd(cov_features)
+            print(s.shape)
+            plt.plot(np.log(s))
+            plt.show()
+            plt.savefig(f'{tsne_work_dir}features/test.png')
 
-    # build t-SNE model
-    tsne_model = TSNE(
-        n_components=args.n_components,
-        perplexity=args.perplexity,
-        early_exaggeration=args.early_exaggeration,
-        learning_rate=args.learning_rate,
-        n_iter=args.n_iter,
-        n_iter_without_progress=args.n_iter_without_progress,
-        init=args.init)
+   #SVD model
 
-    # run and get results
-    mmcv.mkdir_or_exist(f'{tsne_work_dir}saved_pictures/')
-    logger.info('Running t-SNE......')
-    for key, val in features.items():
-        result = tsne_model.fit_transform(val)
-        res_min, res_max = result.min(0), result.max(0)
-        res_norm = (result - res_min) / (res_max - res_min)
-        plt.figure(figsize=(10, 10))
-        plt.scatter(
-            res_norm[:, 0],
-            res_norm[:, 1],
-            alpha=1.0,
-            s=15,
-            c=labels,
-            cmap='tab20')
-        plt.savefig(f'{tsne_work_dir}saved_pictures/{key}.png')
-    logger.info(f'Saved results to {tsne_work_dir}saved_pictures/')
 
 
 if __name__ == '__main__':

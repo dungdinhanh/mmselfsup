@@ -22,23 +22,26 @@ class LatentPredictHead(BaseModule):
         super(LatentPredictHead, self).__init__()
         self.predictor = build_neck(predictor)
 
-    def forward(self, input, target):
+    def forward(self, input, target, loss_cal=True):
         """Forward head.
 
         Args:
             input (Tensor): NxC input features.
             target (Tensor): NxC target features.
-
+            loss_cal (bool): Calculate the loss or not
         Returns:
             dict[str, Tensor]: A dictionary of loss components.
         """
         pred = self.predictor([input])[0]
         target = target.detach()
-
-        pred_norm = nn.functional.normalize(pred, dim=1)
-        target_norm = nn.functional.normalize(target, dim=1)
-        loss = -(pred_norm * target_norm).sum(dim=1).mean()
-        return dict(loss=loss, pred=pred_norm)
+        if loss_cal:
+            pred_norm = nn.functional.normalize(pred, dim=1)
+            target_norm = nn.functional.normalize(target, dim=1)
+            cosine_sim = -(pred_norm * target_norm).sum(dim=1)
+            loss = cosine_sim.mean()
+            return dict(loss=loss, pred=pred_norm, cossim=cosine_sim)
+        else:
+            return pred
 
 
 

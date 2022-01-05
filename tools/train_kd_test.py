@@ -25,6 +25,9 @@ def parse_args():
     parser.add_argument('--work_dir', help='the dir to save logs and models')
     parser.add_argument(
         '--resume_from', help='the checkpoint file to resume from')
+    parser.add_argument(
+        '--init', help="init student"
+    )
     parser.add_argument('--teacher_path', help="Path to teacher checkpoint")
     group_gpus = parser.add_mutually_exclusive_group()
     group_gpus.add_argument(
@@ -71,8 +74,8 @@ def main():
     args = parse_args()
 
     cfg = Config.fromfile(args.config)
-    # if cfg.model.type in ['SimSiamKD', 'SimSiamKD_PredMatching', 'SimSiamKD_wNeg', 'SimSiamKD_GT']:
-    cfg.model.teacher_path = args.teacher_path
+    if cfg.model.type in ['SimSiamKD', 'SimSiamKD_PredMatching', 'SimSiamKD_wNeg', 'SimSiamKD_GT']:
+        cfg.model.teacher_path = args.teacher_path
 
     if args.cfg_options is not None:
         cfg.merge_from_dict(args.cfg_options)
@@ -142,7 +145,8 @@ def main():
     meta['exp_name'] = osp.basename(args.config)
 
     model = build_algorithm(cfg.model)
-    model.init_weights()
+    # model.init_weights()
+    load_checkpoint(model, args.init, None, strict=True, revise_keys=[(r'^module.', '')])
 
     t_model = build_algorithm(cfg.model.teacher)
     load_checkpoint(t_model, cfg.model.teacher_path, None, strict=True, revise_keys=[(r'^module.', '')])
