@@ -219,15 +219,16 @@ class SimSiamKD_wNeg(SimSiamKD):
         # zt2 = self.teacher.encoder(img_v2)[0]
         zt3 = self.teacher.encoder(neg_img)[0]
 
-        teacher_loss1 = self.teacher.head(zt1, zt3)['cossim']
-        teacher_loss3 = self.teacher.head(zt3, zt1)['cossim']
+        teacher_loss3 = self.teacher.head(zt1, zt3)['cossim'].detach()
+        teacher_loss4 = self.teacher.head(zt3, zt1)['cossim'].detach()
 
         student_output1 = self.head(z1, z2)
         student_output2 = self.head(z2, z1)
         student_output3 = self.head(z1, z3)
+        student_output4 = self.head(z3, z1)
 
-        loss_kd = 0.5 * (nn.functional.mse_loss(student_output1['cossim'], teacher_loss1) +
-                        nn.functional.mse_loss(student_output3['cossim'], teacher_loss3))
+        loss_kd = 0.5 * (nn.functional.mse_loss(student_output3['cossim'], teacher_loss3) +
+                        nn.functional.mse_loss(student_output4['cossim'], teacher_loss4))
         loss_student = 0.5 * (student_output1['loss'] + student_output2['loss'])
         losses = loss_kd + loss_student
         return dict(loss=losses)
@@ -382,8 +383,8 @@ class SimDis_Siam_simplified(SimSiamKD):
         zt1 = self.teacher.encoder(img_v1)[0]
         zt2 = self.teacher.encoder(img_v2)[0]
 
-        p1 = self.head(z1, z2, loss_cal = False)
-        p2 = self.head(z2, z1, loss_cal = False)
+        p1 = self.head(z1, z2, loss_cal=False)
+        p2 = self.head(z2, z1, loss_cal=False)
 
         pt1 = self.teacher.head(zt1, zt2, loss_cal=False)
         pt2 = self.teacher.head(zt2, zt1, loss_cal=False)
