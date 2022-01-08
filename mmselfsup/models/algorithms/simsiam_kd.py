@@ -235,6 +235,66 @@ class SimSiamKD_wNeg(SimSiamKD):
 
 
 @ALGORITHMS.register_module()
+class SimSiamKD_PoswNeg(SimSiamKD):
+    def __init__(self,
+                 backbone,
+                 neck=None,
+                 head=None,
+                 init_cfg=None,
+                 **kwargs):
+        super(SimSiamKD_PoswNeg, self).__init__(
+            backbone,
+            neck=neck,
+            head=head,
+            init_cfg=init_cfg,
+            **kwargs
+        )
+
+
+    def forward_train(self, img):
+        """Forward computation during training.
+
+        Args:
+            img (list[Tensor]): A list of input images with shape
+                (N, C, H, W). Typically these should be mean centered
+                and std scaled.
+        Returns:
+            loss[str, Tensor]: A dictionary of loss components
+        """
+        assert isinstance(img, list)
+        self.teacher.eval()
+        img_v1 = img[0]
+        img_v2 = img[1]
+        neg_img = img[2]
+
+        z1 = self.encoder(img_v1)[0]  # NxC
+        z2 = self.encoder(img_v2)[0]  # NxC
+        z3 = self.encoder(neg_img)[0]
+
+        zt1 = self.teacher.encoder(img_v1)[0]
+        zt2 = self.teacher.encoder(img_v2)[0]
+        zt3 = self.teacher.encoder(neg_img)[0]
+
+        teacher_loss1 = self.teacher.head(zt1, zt2)['cossim'].detach()
+        teacher_loss2 = self.teacher.head(zt2, zt1)['cossim'].detach()
+        teacher_loss3 = self.teacher.head(zt1, zt3)['cossim'].detach()
+        teacher_loss4 = self.teacher.head(zt3, zt1)['cossim'].detach()
+
+        student_output1 = self.head(z1, z2)
+        student_output2 = self.head(z2, z1)
+        student_output3 = self.head(z1, z3)
+        student_output4 = self.head(z3, z1)
+
+        loss_kd_neg = 0.5 * (nn.functional.mse_loss(student_output3['cossim'], teacher_loss3) +
+                        nn.functional.mse_loss(student_output4['cossim'], teacher_loss4))
+
+        loss_kd_pos = 0.5 * (nn.functional.mse_loss(student_output1['cossim'], teacher_loss1) +
+                        nn.functional.mse_loss(student_output2['cossim'], teacher_loss2))
+        # loss_student = 0.5 * (student_output1['loss'] + student_output2['loss'])
+        losses = loss_kd_pos + loss_kd_neg
+        return dict(loss=losses)
+
+@ALGORITHMS.register_module()
 class SimSiamKDZT(SimSiamKD):
     """
     Simsiam KD with Z from teacher
