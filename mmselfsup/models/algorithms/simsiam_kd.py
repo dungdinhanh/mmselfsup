@@ -370,6 +370,157 @@ class SimDis_PoswNeg(SimSiamKD):
         losses = simsiam_losses + distillation_loss
         return dict(loss=losses)
 
+@ALGORITHMS.register_module()
+class SimDis_Pos(SimSiamKD):
+    def __init__(self,
+                 backbone,
+                 neck=None,
+                 head=None,
+                 init_cfg=None,
+                 **kwargs):
+        super(SimDis_Pos, self).__init__(
+            backbone,
+            neck=neck,
+            head=head,
+            init_cfg=init_cfg,
+            **kwargs
+        )
+
+
+    def forward_train(self, img):
+        """Forward computation during training.
+
+        Args:
+            img (list[Tensor]): A list of input images with shape
+                (N, C, H, W). Typically these should be mean centered
+                and std scaled.
+        Returns:
+            loss[str, Tensor]: A dictionary of loss components
+        """
+        assert isinstance(img, list)
+        self.teacher.eval()
+        img_v1 = img[0]
+        img_v2 = img[1]
+        neg_img = img[2]
+
+        z1 = self.encoder(img_v1)[0]  # NxC
+        z2 = self.encoder(img_v2)[0]  # NxC
+        z3 = self.encoder(neg_img)[0]
+
+        zt1 = self.teacher.encoder(img_v1)[0]
+        zt2 = self.teacher.encoder(img_v2)[0]
+        zt3 = self.teacher.encoder(neg_img)[0]
+
+        p1 = self.head(z1, z2, loss_cal=False)
+        p2 = self.head(z2, z1, loss_cal=False)
+        # p3 = self.head(z1, z3, loss_cal=False)
+        p3 = self.head(z3, z1, loss_cal=False)
+
+        student_cs1 = cosine_sim(p1, z2, False)
+        student_cs2 = cosine_sim(p2, z1, False)
+        student_cs3 = cosine_sim(p1, z3, False)
+        student_cs4 = cosine_sim(p3, z1, False)
+
+        pt1 = self.teacher.head(zt1, zt2, loss_cal=False).detach()
+        pt2 = self.teacher.head(zt2, zt1, loss_cal=False).detach()
+        pt3 = self.teacher.head(zt3, zt1, loss_cal=False).detach()
+
+        teacher_cs1 = cosine_sim(pt1, zt2, False).detach()
+        teacher_cs2 = cosine_sim(pt2, zt1, False).detach()
+        teacher_cs3 = cosine_sim(pt1, zt3, False).detach()
+        teacher_cs4 = cosine_sim(pt3, zt1, False).detach()
+
+        # loss_kd_neg = 0.5 * (nn.functional.mse_loss(student_cs3, teacher_cs3) +
+        #                 nn.functional.mse_loss(student_cs4, teacher_cs4))
+
+        loss_kd_pos = 0.5 * (nn.functional.mse_loss(student_cs1, teacher_cs1) +
+                        nn.functional.mse_loss(student_cs2, teacher_cs2))
+        # loss_student = 0.5 * (student_output1['loss'] + student_output2['loss'])
+
+        distillation_loss1 = cosine_sim(p1, pt2) + cosine_sim(p1, zt2)
+        distillation_loss2 = cosine_sim(p2, pt1) + cosine_sim(p2, zt1)
+
+        distillation_loss = 0.5 * (distillation_loss1 + distillation_loss2)
+
+        simsiam_losses = loss_kd_pos
+        losses = simsiam_losses + distillation_loss
+        return dict(loss=losses)
+
+@ALGORITHMS.register_module()
+class SimDis_wNeg(SimSiamKD):
+    def __init__(self,
+                 backbone,
+                 neck=None,
+                 head=None,
+                 init_cfg=None,
+                 **kwargs):
+        super(SimDis_wNeg, self).__init__(
+            backbone,
+            neck=neck,
+            head=head,
+            init_cfg=init_cfg,
+            **kwargs
+        )
+
+
+    def forward_train(self, img):
+        """Forward computation during training.
+
+        Args:
+            img (list[Tensor]): A list of input images with shape
+                (N, C, H, W). Typically these should be mean centered
+                and std scaled.
+        Returns:
+            loss[str, Tensor]: A dictionary of loss components
+        """
+        assert isinstance(img, list)
+        self.teacher.eval()
+        img_v1 = img[0]
+        img_v2 = img[1]
+        neg_img = img[2]
+
+        z1 = self.encoder(img_v1)[0]  # NxC
+        z2 = self.encoder(img_v2)[0]  # NxC
+        z3 = self.encoder(neg_img)[0]
+
+        zt1 = self.teacher.encoder(img_v1)[0]
+        zt2 = self.teacher.encoder(img_v2)[0]
+        zt3 = self.teacher.encoder(neg_img)[0]
+
+        p1 = self.head(z1, z2, loss_cal=False)
+        p2 = self.head(z2, z1, loss_cal=False)
+        # p3 = self.head(z1, z3, loss_cal=False)
+        p3 = self.head(z3, z1, loss_cal=False)
+
+        student_cs1 = cosine_sim(p1, z2, False)
+        student_cs2 = cosine_sim(p2, z1, False)
+        student_cs3 = cosine_sim(p1, z3, False)
+        student_cs4 = cosine_sim(p3, z1, False)
+
+        pt1 = self.teacher.head(zt1, zt2, loss_cal=False).detach()
+        pt2 = self.teacher.head(zt2, zt1, loss_cal=False).detach()
+        pt3 = self.teacher.head(zt3, zt1, loss_cal=False).detach()
+
+        teacher_cs1 = cosine_sim(pt1, zt2, False).detach()
+        teacher_cs2 = cosine_sim(pt2, zt1, False).detach()
+        teacher_cs3 = cosine_sim(pt1, zt3, False).detach()
+        teacher_cs4 = cosine_sim(pt3, zt1, False).detach()
+
+        loss_kd_neg = 0.5 * (nn.functional.mse_loss(student_cs3, teacher_cs3) +
+                        nn.functional.mse_loss(student_cs4, teacher_cs4))
+
+        # loss_kd_pos = 0.5 * (nn.functional.mse_loss(student_cs1, teacher_cs1) +
+        #                 nn.functional.mse_loss(student_cs2, teacher_cs2))
+        loss_siam = 0.5 * (student_cs1.mean() + student_cs2.mean())
+
+        distillation_loss1 = cosine_sim(p1, pt2) + cosine_sim(p1, zt2)
+        distillation_loss2 = cosine_sim(p2, pt1) + cosine_sim(p2, zt1)
+
+        distillation_loss = 0.5 * (distillation_loss1 + distillation_loss2)
+
+        imp_losses = loss_siam + loss_kd_neg
+        losses = imp_losses + distillation_loss
+        return dict(loss=losses)
 
 @ALGORITHMS.register_module()
 class SimSiamKDZT(SimSiamKD):
