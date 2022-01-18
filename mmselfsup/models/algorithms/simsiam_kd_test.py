@@ -64,7 +64,7 @@ class SimSiamKD_PoswMinT(SimSiamKD):
                  head=None,
                  init_cfg=None,
                  **kwargs):
-        super(SimSiamKD_PoswMin, self).__init__(
+        super(SimSiamKD_PoswMinT, self).__init__(
             backbone,
             neck=neck,
             head=head,
