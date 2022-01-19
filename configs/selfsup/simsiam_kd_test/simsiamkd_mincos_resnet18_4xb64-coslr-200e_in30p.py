@@ -1,8 +1,8 @@
 _base_ = [
-    '../_base_/models/resnet18_simdis.py',
-    '../_base_/datasets/imagenet30p_mocov2_b64_cluster.py',
-    '../_base_/schedules/sgd_coslr-200e_in30p_kd.py',
-    '../_base_/default_runtime.py',
+    '../_test_/models/resnet18_simsiam_kd_mincos.py',
+    '../_test_/datasets/imagenet30p_mocov2_b64_cluster.py',
+    '../_test_/schedules/sgd_coslr-200e_in30p_kd.py',
+    '../_test_/default_runtime.py',
 ]
 
 # set base learning rate

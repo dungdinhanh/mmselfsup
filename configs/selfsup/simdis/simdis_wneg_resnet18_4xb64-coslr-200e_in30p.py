@@ -1,6 +1,6 @@
 _base_ = [
-    '../_base_/models/resnet18_simdis.py',
-    '../_base_/datasets/imagenet30p_mocov2_b64_cluster.py',
+    '../_base_/models/resnet18_simdis_wneg.py',
+    '../_base_/datasets/imagenet30p_mocov2_wneg_b64_cluster.py',
     '../_base_/schedules/sgd_coslr-200e_in30p_kd.py',
     '../_base_/default_runtime.py',
 ]
