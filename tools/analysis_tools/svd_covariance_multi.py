@@ -23,7 +23,11 @@ from mmselfsup.utils import get_root_logger
 def parse_args():
     parser = argparse.ArgumentParser(description='t-SNE visualization')
     parser.add_argument('config', help='train config file path')
-    parser.add_argument('--checkpoint', default=None, help='checkpoint file')
+    parser.add_argument('--checkpoint1', default=None, help='checkpoint file 1')
+    parser.add_argument('--checkpoint2', default=None, help='checkpoint file 2')
+    parser.add_argument('--checkpoint3', default=None, help='checkpoint file 3')
+    parser.add_argument('--checkpoint4', default=None, help='checkpoint file 4')
+    parser.add_argument('--checkpoint5', default=None, help='checkpoint file 5')
     parser.add_argument(
         '--work_dir', type=str, default=None, help='the dir to save results')
     parser.add_argument(
@@ -218,13 +222,9 @@ def main():
             cov_features = np.cov(np.transpose(features['feat5']))
             _, s, _ = np.linalg.svd(cov_features)
             print(s.shape)
-            log_s = np.log(s)
-            plt.plot(log_s)
+            plt.plot(np.log(s))
             plt.show()
             plt.savefig(f'{tsne_work_dir}features/test.png')
-
-            plt.close()
-            np.save(f'{tsne_work_dir}features/svd.npz', log_s)
 
    #SVD model
 
