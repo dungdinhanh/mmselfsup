@@ -20,5 +20,6 @@ __all__ = [
     'NPID', 'ODC', 'RelativeLoc', 'RotationPred', 'SimCLR', 'SimSiam', 'SwAV', 'SimSiamKD', 'SimSiamKDZT',
     'SimSiamKD_PredMatching', 'SimSiamKD_GT', 'SimSiamKD_wNeg', 'SimDis_Siam_simplified', 'SimSiamKD_PoswNeg',
     'SimDis_PoswNeg', 'SimDis_Pos', 'SimDis_wNeg', 'SimSiamKD_PoswMin', 'SimSiamKD_PoswMinT', 'SimDis_Siam_nogt_sim_pred',
-    'SimDis_Siam_nogt_cross_pred', 'SimDis_Siam_nogt_cross_proj', 'SimDis_Siam_nogt_sim_proj'
+    'SimDis_Siam_nogt_cross_pred', 'SimDis_Siam_nogt_cross_proj', 'SimDis_Siam_nogt_sim_proj', 'SimDis_Siam_poskd_cross_pred',
+    'SimDis_Siam_poskd_sim_pred', 'SimDis_Siam_poskd_cross_proj', 'SimDis_Siam_poskd_sim_proj'
 ]
