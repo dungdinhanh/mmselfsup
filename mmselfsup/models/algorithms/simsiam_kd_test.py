@@ -571,3 +571,48 @@ class SimDis_Siam_poskd_cross_proj(SimSiamKD):
         losses = loss_pos_kd + distillation_loss
 
         return dict(loss=losses)
+
+
+@ALGORITHMS.register_module()
+class SimSiamKDMinIter(SimSiamKD):
+    def __init__(self,
+                 backbone,
+                 neck=None,
+                 head=None,
+                 init_cfg=None,
+                 **kwargs):
+        super(SimSiamKDMinIter, self).__init__(backbone, neck, head, init_cfg, **kwargs)
+
+    def forward_train(self, img):
+        """Forward computation during training.
+
+        Args:
+            img (list[Tensor]): A list of input images with shape
+                (N, C, H, W). Typically these should be mean centered
+                and std scaled.
+        Returns:
+            loss[str, Tensor]: A dictionary of loss components
+        """
+        assert isinstance(img, list)
+        self.teacher.eval()
+        img_v1 = img[0]
+        img_v2 = img[1]
+
+        z1 = self.encoder(img_v1)[0]  # NxC
+        z2 = self.encoder(img_v2)[0]  # NxC
+
+        zt1 = self.teacher.encoder(img_v1)[0]
+        zt2 = self.teacher.encoder(img_v2)[0]
+
+        teacher_loss1 = self.teacher.head(zt1, zt2)['cossim'].detach()
+        teacher_loss2 = self.teacher.head(zt2, zt1)['cossim'].detach()
+
+        shape_loss = teacher_loss1.shape
+        min_loss1 = teacher_loss1.min().repeat(shape_loss)
+        min_loss2 = teacher_loss2.min().repeat(shape_loss)
+
+
+        losses = 0.5 * (nn.functional.mse_loss(self.head(z1, z2)['cossim'], min_loss1) +
+                        nn.functional.mse_loss(self.head(z2, z1)['cossim'], min_loss2))
+        return dict(loss=losses)
+
