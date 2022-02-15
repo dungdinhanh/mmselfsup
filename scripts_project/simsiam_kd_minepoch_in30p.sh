@@ -1,8 +1,8 @@
 #PBS -l select=1:ncpus=20:ngpus=4
-#PBS -l walltime=100:00:00
-#PBS -N ss_in30
+#PBS -l walltime=72:00:00
+#PBS -N ss_std
 #PBS -j oe
-#PBS -o log/simsiam_in30.log
+#PBS -o log/simsiam_kd_neg_in30.log
 #PBS -q project
 #PBS -v CONTAINER_IMAGE=nvcr.io/nvidia/pytorch:20.06-py3
 
@@ -18,7 +18,9 @@ nvidia-smi
 
 export PYTHONPATH=/home/users/$USER/sutddev/mmselfsup/:$PYTHONPATH
 
-cmd="bash tools/dist_train_cluster.sh ${USER} \
-configs/selfsup/simsiam_test/simsiam_resnet50_4xb64x8-coslr-200e_in30p_logmin.py 4"
+cmd="bash tools/dist_train_kd_readminlog.sh ${USER} \
+configs/selfsup/simsiam_kd_test/simsiamkd_minepoch_resnet18_4xb64-coslr-200e_in30p.py 4 \
+--teacher_path ../../scratch/dso/openss/work_dirs/min_loss_epochs.csv"
 echo ${cmd}
 eval ${cmd}
+

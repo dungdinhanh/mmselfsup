@@ -25,5 +25,5 @@ __all__ = [
     'SimSiamKD_PoswMinT', 'SimDis_Siam_nogt_sim_pred', 'SimDis_Siam_nogt_cross_pred',
     'SimDis_Siam_nogt_cross_proj', 'SimDis_Siam_nogt_sim_proj', 'SimDis_Siam_poskd_cross_pred',
     'SimDis_Siam_poskd_sim_pred', 'SimDis_Siam_poskd_cross_proj', 'SimDis_Siam_poskd_sim_proj',
-    'SimSiamLogMin', 'SimSiamKDMinIter'
+    'SimSiamLogMin', 'SimSiamKDMinIter', 'SimSiamKDMinEpoch'
 ]
