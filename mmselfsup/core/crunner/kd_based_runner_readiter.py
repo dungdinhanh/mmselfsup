@@ -15,16 +15,18 @@ from mmcv.runner.builder import RUNNERS
 from mmcv.runner.checkpoint import save_checkpoint
 from mmcv.runner.utils import get_host_info
 
+import pandas as pd
+
 
 @RUNNERS.register_module()
-class KDBasedRunner(BaseRunner):
+class KDBasedRunnerReadIter(BaseRunner):
     """KD-based Runner.
 
     This runner train models epoch by epoch. For each epoch, the runner feed in the teacher model.
     """
     def __init__(self,
                  model,
-                 t_model,
+                 file_log_min_epochs="../../scratch/dso/openss/work_dirs/min_loss_epochs.csv",
                  batch_processor=None,
                  optimizer=None,
                  work_dir=None,
@@ -33,7 +35,7 @@ class KDBasedRunner(BaseRunner):
                  max_iters=None,
                  max_epochs=None
                  ):
-        super(KDBasedRunner, self).__init__(
+        super(KDBasedRunnerReadIter, self).__init__(
                                             model,
                                             batch_processor,
                                             optimizer,
@@ -42,14 +44,16 @@ class KDBasedRunner(BaseRunner):
                                             meta,
                                             max_iters,
                                             max_epochs)
-        self.t_model = t_model
+        # self.t_model = t_model
+        self.log_min_epochs = None
+        self.file_log_min_epochs = file_log_min_epochs
 
     def run_iter(self, data_batch, train_mode, **kwargs):
         if self.batch_processor is not None:
             outputs = self.batch_processor(
                 self.model, data_batch, train_mode=train_mode, **kwargs)
         elif train_mode:
-            outputs = self.model.train_step(data_batch, self.optimizer, self.t_model,
+            outputs = self.model.train_step(data_batch, self.optimizer, self.log_min_epochs[self._epoch],
                                             **kwargs)
         else:
             outputs = self.model.val_step(data_batch, self.optimizer, **kwargs)
@@ -129,6 +133,10 @@ class KDBasedRunner(BaseRunner):
         self.logger.info('workflow: %s, max: %d epochs', workflow,
                          self._max_epochs)
         self.call_hook('before_run')
+
+        df = pd.read_csv(self.file_log_min_epochs, header=None)
+        s_array = df[[1, 2]].to_numpy().min(axis=1)
+        self.log_min_epochs = torch.from_numpy(s_array).cuda()
 
         while self.epoch < self._max_epochs:
             for i, flow in enumerate(workflow):

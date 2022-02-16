@@ -11,7 +11,7 @@
 #echo ${cmd}
 #eval ${cmd}
 
-cmd="pip install torch==1.9.1 torchvision==0.10.0"
+cmd="pip install torch==1.9.0 torchvision==0.10.0"
 echo ${cmd}
 eval ${cmd}
 

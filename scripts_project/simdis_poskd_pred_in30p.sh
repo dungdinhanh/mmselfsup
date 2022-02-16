@@ -19,14 +19,13 @@ nvidia-smi
 export PYTHONPATH=/home/users/$USER/sutddev/mmselfsup/:$PYTHONPATH
 
 cmd="bash tools/dist_train_kd_cluster.sh ${USER} \
-configs/selfsup/simdis_test/simdis_nogt_simpred_resnet18_4xb64-coslr-200e_in30p.py 4 \
+configs/selfsup/simdis_test/simdis_poskd_simpred_resnet18_4xb64-coslr-200e_in30p.py 4 \
 --teacher_path ../../scratch/dso/openss/work_dirs/selfsup/simsiam/simsiam_resnet50_4xb64-coslr-200e_in30p/epoch_200.pth"
 echo ${cmd}
-#eval ${cmd}
+eval ${cmd}
 
 cmd="bash tools/dist_train_kd_cluster.sh ${USER} \
-configs/selfsup/simdis_test/simdis_nogt_crosspred_resnet18_4xb64-coslr-200e_in30p.py 4 \
---teacher_path ../../scratch/dso/openss/work_dirs/selfsup/simsiam/simsiam_resnet50_4xb64-coslr-200e_in30p/epoch_200.pth \
---resume_from ../../scratch/dso/openss/work_dirs/selfsup/simdis_test/simdis_nogt_crosspred_resnet18_4xb64-coslr-200e_in30p/latest.pth"
+configs/selfsup/simdis_test/simdis_poskd_crosspred_resnet18_4xb64-coslr-200e_in30p.py 4 \
+--teacher_path ../../scratch/dso/openss/work_dirs/selfsup/simsiam/simsiam_resnet50_4xb64-coslr-200e_in30p/epoch_200.pth"
 echo ${cmd}
 eval ${cmd}
