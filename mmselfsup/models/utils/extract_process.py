@@ -105,3 +105,138 @@ class ExtractEncoderProcess(object):
             results = nondist_forward_collect(func, data_loader,
                                               len(data_loader.dataset))
         return results
+
+class ExtractEncoderDifferenceProcess(object):
+    """Extraction process for `extract.py` and `tsne_visualization.py` in
+    tools.
+
+    Args:
+        pool_type (str): Pooling type in :class:`MultiPooling`. Options are
+            "adaptive" and "specified". Defaults to "specified".
+        backbone (str): Backbone type, now only support "resnet50".
+            Defaults to "resnet50".
+        layer_indices (Sequence[int]): Output from which stages.
+            0 for stem, 1, 2, 3, 4 for res layers. Defaults to (0, 1, 2, 3, 4).
+    """
+
+    def __init__(self):
+        pass
+
+    def _forward_func(self, model, **x):
+        """The forward function of extract process."""
+        # print(model.state_dict().keys())
+        # exit(0)
+        backbone_feats = model(mode='extract_diff', **x)
+        pooling_feats = [backbone_feats]
+        flat_feats = [xx.view(xx.size(0), -1) for xx in pooling_feats]
+        feat_dict = {
+            'featproj': feat.cpu()
+            for i, feat in enumerate(flat_feats)
+        }
+        return feat_dict
+
+    def extract(self, model, data_loader, distributed=False):
+        """The extract function to apply forward function and choose
+        distributed or not."""
+        model.eval()
+
+        # the function sent to collect function
+        def func(**x):
+            return self._forward_func(model, **x)
+
+        if distributed:
+            rank, world_size = get_dist_info()
+            results = dist_forward_collect(func, data_loader, rank,
+                                           len(data_loader.dataset))
+        else:
+            results = nondist_forward_collect(func, data_loader,
+                                              len(data_loader.dataset))
+        return results
+
+class ExtractEncoderDifferenceProcessMTV(object):
+    """Extraction process for `extract.py` and `tsne_visualization.py` in
+    tools.
+
+    Args:
+        pool_type (str): Pooling type in :class:`MultiPooling`. Options are
+            "adaptive" and "specified". Defaults to "specified".
+        backbone (str): Backbone type, now only support "resnet50".
+            Defaults to "resnet50".
+        layer_indices (Sequence[int]): Output from which stages.
+            0 for stem, 1, 2, 3, 4 for res layers. Defaults to (0, 1, 2, 3, 4).
+    """
+
+    def __init__(self):
+        pass
+
+    def _forward_func(self, model, **x):
+        """The forward function of extract process."""
+        # print(model.state_dict().keys())
+        # exit(0)
+        backbone_feats = model(mode='extract_diff_multiview', **x)
+        pooling_feats = [backbone_feats]
+        flat_feats = [xx.view(xx.size(0), -1) for xx in pooling_feats]
+        feat_dict = {
+            'featproj': feat.cpu()
+            for i, feat in enumerate(flat_feats)
+        }
+        return feat_dict
+
+    def extract(self, model, data_loader, distributed=False):
+        """The extract function to apply forward function and choose
+        distributed or not."""
+        model.eval()
+
+        # the function sent to collect function
+        def func(**x):
+            return self._forward_func(model, **x)
+
+        if distributed:
+            rank, world_size = get_dist_info()
+            results = dist_forward_collect(func, data_loader, rank,
+                                           len(data_loader.dataset))
+        else:
+            results = nondist_forward_collect(func, data_loader,
+                                              len(data_loader.dataset))
+        return results
+
+class GetRelationsTeacherStudent(object):
+    """Extraction process for `extract.py` and `tsne_visualization.py` in
+    tools.
+
+    Args:
+        pool_type (str): Pooling type in :class:`MultiPooling`. Options are
+            "adaptive" and "specified". Defaults to "specified".
+        backbone (str): Backbone type, now only support "resnet50".
+            Defaults to "resnet50".
+        layer_indices (Sequence[int]): Output from which stages.
+            0 for stem, 1, 2, 3, 4 for res layers. Defaults to (0, 1, 2, 3, 4).
+    """
+
+    def __init__(self):
+        pass
+
+    def _forward_func(self, model, teacher, **x):
+        """The forward function of extract process."""
+        # print(model.state_dict().keys())
+        # exit(0)
+        return model(mode='lower_teacher', teacher=teacher, **x) # view1, view2, teacher_score, student_score
+
+    def extract(self, model, teacher, data_loader, distributed=False):
+        """The extract function to apply forward function and choose
+        distributed or not."""
+        model.eval()
+        teacher.eval()
+
+        # the function sent to collect function
+        def func(**x):
+            return self._forward_func(model, teacher, **x)
+
+        if distributed:
+            rank, world_size = get_dist_info()
+            results = dist_forward_collect(func, data_loader, rank,
+                                           len(data_loader.dataset))
+        else:
+            results = nondist_forward_collect(func, data_loader,
+                                              len(data_loader.dataset))
+        return results

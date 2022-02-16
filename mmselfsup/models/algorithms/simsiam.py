@@ -103,6 +103,7 @@ class SimSiamVis(BaseModel):
         self.neck = self.encoder[1]
         assert head is not None
         self.head = build_head(head)
+        self.teacher = None
 
     def extract_feat(self, img):
         """Function to extract features from backbone.
@@ -150,8 +151,69 @@ class SimSiamVis(BaseModel):
         losses = 0.5 * (self.head(z1, z2)['loss'] + self.head(z2, z1)['loss'])
         return dict(loss=losses)
 
+    def extract_diff(self, img):
+        """Forward computation during training.
+
+        Args:
+            img (list[Tensor]): A list of input images with shape
+                (N, C, H, W). Typically these should be mean centered
+                and std scaled.
+        Returns:
+            loss[str, Tensor]: A dictionary of loss components
+        """
+
+        z = self.encoder(img)[0]
+        p = self.head(z, z, loss_cal=False)
+        x = p - z
+        return x
+
+    def extract_diff_multiview(self, img):
+        assert isinstance(img, list)
+        img_v1 = img[0]
+        img_v2 = img[1]
+
+        z1 = self.encoder(img_v1)[0]  # NxC
+        z2 = self.encoder(img_v2)[0]  # NxC
+
+        p1 = self.head(z1, z2, loss_cal=False)
+        p1 = nn.functional.normalize(p1, dim=1)
+        z2 = nn.functional.normalize(z2, dim=1)
+
+        return p1 - z2
+
+    def lower_teacher(self, img):
+        """Forward computation during training.
+
+        Args:
+            img (list[Tensor]): A list of input images with shape
+                (N, C, H, W). Typically these should be mean centered
+                and std scaled.
+        Returns:
+            loss[str, Tensor]: A dictionary of loss components
+        """
+        assert isinstance(img, list)
+        img_v1 = img[0]
+        img_v2 = img[1]
+
+        z1 = self.encoder(img_v1)[0]  # NxC
+        z2 = self.encoder(img_v2)[0]  # NxC
+
+        student_loss1 = self.head(z1, z2)['loss']
+
+        zt1 = self.teacher.encoder(img_v1)[0]
+        zt2 = self.teacher.encoder(img_v2)[0]
+
+        teacher_loss1 = self.teacher.head(zt1, zt2)['loss']
+
+        lower_indices = student_loss1 < teacher_loss1
+        print(lower_indices)
+        exit(0)
+
+        return None
+
+
     @auto_fp16(apply_to=('img',))
-    def forward(self, img, mode='train', **kwargs):
+    def forward(self, img, mode='train', teacher=None, **kwargs):
         """Forward function of model.
 
         Calls either forward_train, forward_test or extract_feat function
@@ -165,5 +227,16 @@ class SimSiamVis(BaseModel):
             return self.extract_feat(img)
         elif mode == 'extract_encoder':
             return self.extract_encoder(img)
+        elif mode == 'extract_diff':
+            return self.extract_diff(img)
+        elif mode == 'extract_diff_multiview':
+            return self.extract_diff_multiview(img)
+        elif mode == 'lower_teacher':
+            if teacher is None:
+                print("Must include teacher weights and configs")
+                exit(0)
+            if self.teacher is None:
+                self.teacher = teacher
+            return self.lower_teacher(img, **kwargs)
         else:
             raise Exception(f'No such mode: {mode}')

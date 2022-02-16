@@ -136,8 +136,9 @@ def main():
         init_dist(args.launcher, **cfg.dist_params)
 
     # create work_dir and init the logger before other steps
-    timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
-    tsne_work_dir = osp.join(cfg.work_dir, f'tsne_{timestamp}/')
+    # timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
+    base_name_checkpoint = os.path.basename(cfg.model.backbone.init_cfg.checkpoint)
+    tsne_work_dir = osp.join(cfg.work_dir, f'svd_{base_name_checkpoint}/')
     mmcv.mkdir_or_exist(osp.abspath(tsne_work_dir))
     log_file = osp.join(tsne_work_dir, 'extract.log')
     logger = get_root_logger(log_file=log_file, log_level=cfg.log_level)
@@ -217,9 +218,13 @@ def main():
             cov_features = np.cov(np.transpose(features['feat5']))
             _, s, _ = np.linalg.svd(cov_features)
             print(s.shape)
-            plt.plot(np.log(s))
+            log_s = np.log(s)
+            plt.plot(log_s)
             plt.show()
             plt.savefig(f'{tsne_work_dir}features/test.png')
+
+            plt.close()
+            np.save(f'{tsne_work_dir}features/svd.npz', log_s)
 
    #SVD model
 

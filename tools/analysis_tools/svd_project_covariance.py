@@ -34,7 +34,7 @@ def parse_args():
     parser.add_argument('--local_rank', type=int, default=0)
     parser.add_argument(
         '--dataset_config',
-        default='configs/benchmarks/classification/tsne_imagenet.py',
+        default='configs/benchmarks/classification/svd_imagenet.py',
         help='extract dataset config file path')
     parser.add_argument(
         '--layer_ind',
@@ -135,7 +135,7 @@ def main():
 
     # create work_dir and init the logger before other steps
     timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
-    tsne_work_dir = osp.join(cfg.work_dir, f'tsne_{timestamp}/')
+    tsne_work_dir = cfg.work_dir
     mmcv.mkdir_or_exist(osp.abspath(tsne_work_dir))
     log_file = osp.join(tsne_work_dir, 'extract.log')
     logger = get_root_logger(log_file=log_file, log_level=cfg.log_level)
@@ -189,19 +189,19 @@ def main():
     labels = dataset.data_source.get_gt_labels()
 
     # save features
-    mmcv.mkdir_or_exist(f'{tsne_work_dir}features/')
-    logger.info(f'Save features to {tsne_work_dir}features/')
+    mmcv.mkdir_or_exist(f'{tsne_work_dir}/features/')
+    logger.info(f'Save features to {tsne_work_dir}/features/')
     if distributed:
         rank, _ = get_dist_info()
         if rank == 0:
             for key, val in features.items():
                 output_file = \
-                    f'{tsne_work_dir}features/{dataset_cfg.name}_{key}.npy'
+                    f'{tsne_work_dir}/features/{dataset_cfg.name}_{key}.npy'
                 np.save(output_file, val)
     else:
         for key, val in features.items():
             output_file = \
-                f'{tsne_work_dir}features/{dataset_cfg.name}_{key}.npy'
+                f'{tsne_work_dir}/features/{dataset_cfg.name}_{key}.npy'
             np.save(output_file, val)
     if distributed:
         rank, _ = get_dist_info()
@@ -210,9 +210,13 @@ def main():
             cov_features = np.cov(np.transpose(features['featproj']))
             _, s, _ = np.linalg.svd(cov_features)
             print(s.shape)
-            plt.plot(np.log(s))
+            log_s = np.log(s)
+            plt.plot(log_s)
             plt.show()
-            plt.savefig(f'{tsne_work_dir}features/test.png')
+            plt.savefig(f'{tsne_work_dir}/features/test.png')
+
+            plt.close()
+            np.save(f'{tsne_work_dir}/features/svd.npz', log_s)
 
    #SVD model
 

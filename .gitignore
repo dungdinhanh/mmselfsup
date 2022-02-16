@@ -123,6 +123,7 @@ replace.sh
 benchmarks/detection/datasets
 benchmarks/detection/output
 log/
+visualization/
 *.log
 
 # Pytorch
