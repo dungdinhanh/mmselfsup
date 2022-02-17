@@ -641,7 +641,7 @@ class SimSiamKDMinEpoch(BaseModel):
                  head=None,
                  init_cfg=None,
                  **kwargs):
-        super(SimSiamKD, self).__init__(init_cfg)
+        super(SimSiamKDMinEpoch, self).__init__(init_cfg)
         assert neck is not None
         self.encoder = nn.Sequential(
             build_backbone(backbone), build_neck(neck))
@@ -682,7 +682,6 @@ class SimSiamKDMinEpoch(BaseModel):
             loss[str, Tensor]: A dictionary of loss components
         """
         assert isinstance(img, list)
-        self.teacher.eval()
         img_v1 = img[0]
         img_v2 = img[1]
 
@@ -694,10 +693,11 @@ class SimSiamKDMinEpoch(BaseModel):
         #
         # teacher_loss1 = self.teacher.head(zt1, zt2)['cossim'].detach()
         # teacher_loss2 = self.teacher.head(zt2, zt1)['cossim'].detach()
-
-
-        losses = 0.5 * (nn.functional.mse_loss(self.head(z1, z2)['cossim'], self.teacher) +
-                        nn.functional.mse_loss(self.head(z2, z1)['cossim'], self.teacher))
+        s_sim1 = self.head(z1, z2)['cossim']
+        s_sim2 = self.head(z2, z1)['cossim']
+        teacher_sim = self.teacher.repeat(s_sim1.shape).float()
+        losses = 0.5 * (nn.functional.mse_loss(s_sim1, teacher_sim) +
+                        nn.functional.mse_loss(s_sim2, teacher_sim))
         return dict(loss=losses)
 
     def train_step(self, data, optimizer, teacher_minepoch):
@@ -725,8 +725,8 @@ class SimSiamKDMinEpoch(BaseModel):
                     is DDP, it means the batch size on each GPU), which is \
                     used for averaging the logs.
         """
-        if self.teacher is None:
-            self.teacher = teacher_minepoch
+
+        self.teacher = teacher_minepoch[0]
         losses = self(**data)
         loss, log_vars = self._parse_losses(losses)
 
@@ -735,5 +735,4 @@ class SimSiamKDMinEpoch(BaseModel):
         else:
             num_samples = len(data['img'].data)
         outputs = dict(loss=loss, log_vars=log_vars, num_samples=num_samples)
-
         return outputs

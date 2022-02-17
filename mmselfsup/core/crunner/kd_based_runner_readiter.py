@@ -53,7 +53,7 @@ class KDBasedRunnerReadIter(BaseRunner):
             outputs = self.batch_processor(
                 self.model, data_batch, train_mode=train_mode, **kwargs)
         elif train_mode:
-            outputs = self.model.train_step(data_batch, self.optimizer, self.log_min_epochs[self._epoch],
+            outputs = self.model.train_step(data_batch, self.optimizer, self.log_min_epochs[self._epoch].repeat(1),
                                             **kwargs)
         else:
             outputs = self.model.val_step(data_batch, self.optimizer, **kwargs)

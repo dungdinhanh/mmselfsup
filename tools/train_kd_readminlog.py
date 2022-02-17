@@ -12,7 +12,7 @@ from mmcv.runner import get_dist_info, init_dist
 from mmcv.runner.checkpoint import load_checkpoint
 
 from mmselfsup import __version__
-from mmselfsup.apis import init_random_seed, set_random_seed, train_model, train_model_kd
+from mmselfsup.apis import init_random_seed, set_random_seed, train_model, train_model_kd, train_model_kd_readlogmin
 from mmselfsup.datasets import build_dataset
 from mmselfsup.models import build_algorithm
 from mmselfsup.utils import collect_env, get_root_logger
@@ -144,7 +144,7 @@ def main():
     model = build_algorithm(cfg.model)
     model.init_weights()
 
-    t_model = cfg.model.teacher
+    t_model = cfg.model.teacher_path
 
     datasets = [build_dataset(cfg.data.train)]
     assert len(cfg.workflow) == 1, 'Validation is called by hook.'
@@ -154,7 +154,7 @@ def main():
         cfg.checkpoint_config.meta = dict(
             mmselfsup_version=__version__, config=cfg.pretty_text)
 
-    train_model_kd(
+    train_model_kd_readlogmin(
         model,
         t_model,
         datasets,
