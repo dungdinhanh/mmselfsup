@@ -700,7 +700,7 @@ class SimSiamKDMinEpoch(BaseModel):
                         nn.functional.mse_loss(s_sim2, teacher_sim))
         return dict(loss=losses)
 
-    def train_step(self, data, optimizer, teacher_minepoch):
+    def train_step(self, data, optimizer, teacher_minepoch, epoch):
         """The iteration step during training.
 
         This method defines an iteration step during training, except for the
@@ -726,7 +726,55 @@ class SimSiamKDMinEpoch(BaseModel):
                     used for averaging the logs.
         """
 
-        self.teacher = teacher_minepoch[0]
+        self.teacher = teacher_minepoch[epoch[0]]
+        losses = self(**data)
+        loss, log_vars = self._parse_losses(losses)
+
+        if isinstance(data['img'], list):
+            num_samples = len(data['img'][0].data)
+        else:
+            num_samples = len(data['img'].data)
+        outputs = dict(loss=loss, log_vars=log_vars, num_samples=num_samples)
+        return outputs
+
+
+@ALGORITHMS.register_module()
+class SimSiamKDMin5Epoch(SimSiamKDMinEpoch):
+    def __init__(self,
+                 backbone,
+                 neck=None,
+                 head=None,
+                 init_cfg=None,
+                 **kwargs):
+        super(SimSiamKDMin5Epoch, self).__init__(backbone, neck, head, init_cfg)
+
+    def train_step(self, data, optimizer, teacher_minepoch, epoch):
+        """The iteration step during training.
+
+        This method defines an iteration step during training, except for the
+        back propagation and optimizer updating, which are done in an optimizer
+        hook. Note that in some complicated cases or models, the whole process
+        including back propagation and optimizer updating are also defined in
+        this method, such as GAN.
+
+        Args:
+            data (dict): The output of dataloader.
+            optimizer (:obj:`torch.optim.Optimizer` | dict): The optimizer of
+                runner is passed to ``train_step()``. This argument is unused
+                and reserved.
+
+        Returns:
+            dict: Dict of outputs. The following fields are contained.
+                - loss (torch.Tensor): A tensor for back propagation, which \
+                    can be a weighted sum of multiple losses.
+                - log_vars (dict): Dict contains all the variables to be sent \
+                    to the logger.
+                - num_samples (int): Indicates the batch size (when the model \
+                    is DDP, it means the batch size on each GPU), which is \
+                    used for averaging the logs.
+        """
+
+        self.teacher = torch.min(teacher_minepoch[epoch[0]: epoch[0] + 5])
         losses = self(**data)
         loss, log_vars = self._parse_losses(losses)
 

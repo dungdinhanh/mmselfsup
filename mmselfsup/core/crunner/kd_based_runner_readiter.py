@@ -47,14 +47,15 @@ class KDBasedRunnerReadIter(BaseRunner):
         # self.t_model = t_model
         self.log_min_epochs = None
         self.file_log_min_epochs = file_log_min_epochs
+        self.tensor_epoch = torch.tensor([0]).cuda()
 
     def run_iter(self, data_batch, train_mode, **kwargs):
         if self.batch_processor is not None:
             outputs = self.batch_processor(
                 self.model, data_batch, train_mode=train_mode, **kwargs)
         elif train_mode:
-            outputs = self.model.train_step(data_batch, self.optimizer, self.log_min_epochs[self._epoch].repeat(1),
-                                            **kwargs)
+            outputs = self.model.train_step(data_batch, self.optimizer, self.log_min_epochs,
+                                           self.tensor_epoch, **kwargs)
         else:
             outputs = self.model.val_step(data_batch, self.optimizer, **kwargs)
         if not isinstance(outputs, dict):
@@ -80,6 +81,7 @@ class KDBasedRunnerReadIter(BaseRunner):
 
         self.call_hook('after_train_epoch')
         self._epoch += 1
+        self.tensor_epoch[0] += 1
 
     @torch.no_grad()
     def val(self, data_loader, **kwargs):
