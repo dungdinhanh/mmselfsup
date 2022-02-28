@@ -18,7 +18,7 @@ nvidia-smi
 
 export PYTHONPATH=/home/users/$USER/sutddev/mmselfsup/:$PYTHONPATH
 
-cmd="bash tools/dist_train_kd_readminlog.sh ${USER} \
+cmd="bash tools/dist_train_kd_cluster_readminlog.sh ${USER} \
 configs/selfsup/simsiam_kd_test/simsiamkd_minepoch_resnet18_4xb64-coslr-200e_in30p.py 4 \
 --teacher_path ../../scratch/dso/openss/work_dirs/min_loss_epochs.csv"
 echo ${cmd}
