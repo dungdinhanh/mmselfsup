@@ -7,6 +7,8 @@ from .base import BaseModel
 import torch
 import torch.nn.functional as F
 
+from collections import OrderedDict
+
 
 @ALGORITHMS.register_module()
 class SimSiamKD(BaseModel):
