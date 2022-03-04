@@ -895,20 +895,6 @@ class SimSiamKD_ignorelower(SimSiamKD):
         return dict(loss=losses, l_student=l_s, l_teacher=l_t)
 
 
-    def train_step(self, data, optimizer, teacher_model):
-        if self.teacher is None:
-            self.teacher = teacher_model
-        losses = self(**data)
-        loss, log_vars = self._parse_losses(losses)
-
-        if isinstance(data['img'], list):
-            num_samples = len(data['img'][0].data)
-        else:
-            num_samples = len(data['img'].data)
-        outputs = dict(loss=loss, log_vars=log_vars, num_samples=num_samples)
-
-        return outputs
-
 
 @ALGORITHMS.register_module()
 class SimSiamKD_ILMH(SimSiamKD):  # ignore lower minimize Higher
