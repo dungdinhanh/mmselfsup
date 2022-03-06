@@ -1078,8 +1078,33 @@ class SimSiamKD_MaLMH(SimSiamKD): # maximize lower, minimize Higher
         index_higher1 = torch.bitwise_not(index_lower1)
         index_higher2 = torch.bitwise_not(index_lower2)
 
-        loss1 = 0.5 * (torch.mean(student_loss1[index_higher1]) + torch.mean(student_loss2[index_higher2]))
-        loss2 = -0.5 * (torch.mean(student_loss1[index_lower1]) + torch.mean(student_loss2[index_lower2]))
+        # loss 1
+        # image1
+        if student_loss1[index_higher1].shape[0] == 0:
+            loss1_stl1 = 0.0
+        else:
+            loss1_stl1 = torch.mean(student_loss1[index_higher1])
+        # image2
+        if student_loss2[index_higher2].shape[0] == 0:
+            loss1_stl2 = 0.0
+        else:
+            loss1_stl2 = torch.mean(student_loss2[index_higher2])
+        loss1 = 0.5 * (loss1_stl1 + loss1_stl2)  # loss1 here
+
+        # loss 2
+        # image1
+        if student_loss1[index_lower1].shape[0] == 0:
+            loss2_stl1 = 0.0
+        else:
+            loss2_stl1 = torch.mean(student_loss1[index_lower1])
+        # image2
+        if student_loss2[index_lower2].shape[0] == 0:
+            loss2_stl2 = 0.0
+        else:
+            loss2_stl2 = torch.mean(student_loss2[index_lower2])
+        loss2 = -0.5 * (loss2_stl1 + loss2_stl2)  # loss2 here
+        # loss1 = 0.5 * (torch.mean(student_loss1[index_higher1]) + torch.mean(student_loss2[index_higher2]))
+        # loss2 = -0.5 * (torch.mean(student_loss1[index_lower1]) + torch.mean(student_loss2[index_lower2]))
 
         losses = loss1 + loss2
         return dict(loss=losses, l_student=l_s, l_teacher=l_t)

@@ -20,7 +20,8 @@ export PYTHONPATH=/home/users/$USER/sutddev/mmselfsup/:$PYTHONPATH
 
 cmd="bash tools/dist_train_kd_cluster.sh ${USER} \
 configs/selfsup/simsiam_kd_test/simsiamkd_malmh_resnet18_4xb64-coslr-200e_in30p.py 4 \
---teacher_path ../../scratch/dso/openss/work_dirs/selfsup/simsiam/simsiam_resnet50_4xb64-coslr-200e_in30p/epoch_200.pth &>> log/malmh.log"
+--teacher_path \
+../../scratch/dso/openss/work_dirs/selfsup/simsiam/simsiam_resnet50_4xb64-coslr-200e_in30p/epoch_200.pth &>> log/malmh.log"
 echo ${cmd}
 eval ${cmd}
 
