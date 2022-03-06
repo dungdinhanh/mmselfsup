@@ -1,6 +1,6 @@
 # model settings
 model = dict(
-    type='SimDis_Siam_poskd_sim_pred_target',
+    type='SimDis_poskd_sim_pred_target',
     backbone=dict(
         type='ResNet',
         depth=18,

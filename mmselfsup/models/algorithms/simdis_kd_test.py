@@ -69,11 +69,11 @@ class SimDis_poskd_sim_pred_target(SimSiamKD):
 
         # simsiam_loss = 0.5 * (cosine_sim(p1, z2) + cosine_sim(p2, z1))
 
-        distillation_loss1 = cosine_sim(p1, pt1)
-        distillation_loss2 = cosine_sim(p2, pt2)
+        distillation_loss1 = cosine_sim(p1, pt1, False)
+        distillation_loss2 = cosine_sim(p2, pt2, False)
 
-        distillation_target1 = cosine_sim(pt1, pt3).detach()
-        distillation_target2 = cosine_sim(pt2, pt3).detach()
+        distillation_target1 = cosine_sim(pt1, pt3, False).detach()
+        distillation_target2 = cosine_sim(pt2, pt3, False).detach()
 
         # distillation_loss = 0.5 * (distillation_loss1 + distillation_loss2)
 
