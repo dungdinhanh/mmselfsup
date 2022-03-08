@@ -1108,3 +1108,84 @@ class SimSiamKD_MaLMH(SimSiamKD): # maximize lower, minimize Higher
 
         losses = loss1 + loss2
         return dict(loss=losses, l_student=l_s, l_teacher=l_t)
+
+
+@ALGORITHMS.register_module()
+class SimSiamKD_MLOH(SimSiamKD): # minimize lower, optimize Higher
+    def __init__(self,
+                 backbone,
+                 neck=None,
+                 head=None,
+                 init_cfg=None,
+                 **kwargs):
+        super(SimSiamKD_MLOH, self).__init__(backbone, neck, head, init_cfg, **kwargs)
+
+    def forward_train(self, img):
+        """Forward computation during training.
+
+        Args:
+            img (list[Tensor]): A list of input images with shape
+                (N, C, H, W). Typically these should be mean centered
+                and std scaled.
+        Returns:
+            loss[str, Tensor]: A dictionary of loss components
+        """
+        assert isinstance(img, list)
+        self.teacher.eval()
+        img_v1 = img[0]
+        img_v2 = img[1]
+
+        z1 = self.encoder(img_v1)[0]  # NxC
+        z2 = self.encoder(img_v2)[0]  # NxC
+
+        zt1 = self.teacher.encoder(img_v1)[0]
+        zt2 = self.teacher.encoder(img_v2)[0]
+
+        teacher_loss1 = self.teacher.head(zt1, zt2)['cossim'].detach()
+        teacher_loss2 = self.teacher.head(zt2, zt1)['cossim'].detach()
+
+        student_loss1 = self.head(z1, z2)['cossim']
+        student_loss2 = self.head(z2, z1)['cossim']
+
+        # for plotting loss
+        l_s1 = torch.mean(student_loss1)
+        l_s2 = torch.mean(student_loss2)
+        l_s = 1/2 * (l_s1 + l_s2).detach()
+        l_t = 1/2 * (torch.mean(teacher_loss1) + torch.mean(teacher_loss2)).detach()
+
+        index_lower1 = student_loss1 < teacher_loss1
+        index_lower2 = student_loss2 < teacher_loss2
+
+        index_higher1 = torch.bitwise_not(index_lower1)
+        index_higher2 = torch.bitwise_not(index_lower2)
+
+        # loss 1
+        # image1
+        if student_loss1[index_higher1].shape[0] == 0:
+            loss1_stl1 = 0.0
+        else:
+            loss1_stl1 = nn.functional.mse_loss(student_loss1[index_higher1], teacher_loss1[index_higher1])
+        # image2
+        if student_loss2[index_higher2].shape[0] == 0:
+            loss1_stl2 = 0.0
+        else:
+            loss1_stl2 = nn.functional.mse_loss(student_loss2[index_higher2], teacher_loss2[index_higher2])
+        loss1 = 0.5 * (loss1_stl1 + loss1_stl2)  # loss1 here
+
+        # loss 2
+        # image1
+        if student_loss1[index_lower1].shape[0] == 0:
+            loss2_stl1 = 0.0
+        else:
+            loss2_stl1 = torch.mean(student_loss1[index_lower1])
+        # image2
+        if student_loss2[index_lower2].shape[0] == 0:
+            loss2_stl2 = 0.0
+        else:
+            loss2_stl2 = torch.mean(student_loss2[index_lower2])
+        loss2 = 0.5 * (loss2_stl1 + loss2_stl2)  # loss2 here
+        # loss1 = 0.5 * (torch.mean(student_loss1[index_higher1]) + torch.mean(student_loss2[index_higher2]))
+        # loss2 = -0.5 * (torch.mean(student_loss1[index_lower1]) + torch.mean(student_loss2[index_lower2]))
+
+        losses = loss1 + loss2
+        return dict(loss=losses, l_student=l_s, l_teacher=l_t)
