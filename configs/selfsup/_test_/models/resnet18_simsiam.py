@@ -1,6 +1,6 @@
 # model settings
 model = dict(
-    type='SimSiam',
+    type='SimSiamL',
     backbone=dict(
         type='ResNet',
         depth=18,
