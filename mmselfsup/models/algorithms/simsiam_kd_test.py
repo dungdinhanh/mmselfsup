@@ -1189,3 +1189,249 @@ class SimSiamKD_MLOH(SimSiamKD): # minimize lower, optimize Higher
 
         losses = loss1 + loss2
         return dict(loss=losses, l_student=l_s, l_teacher=l_t)
+
+
+
+@ALGORITHMS.register_module()
+class SimSiamKD_OLMH_dimcollapsecheck(SimSiamKD): # optimize lower, minimize Higher
+    def __init__(self,
+                 backbone,
+                 neck=None,
+                 head=None,
+                 init_cfg=None,
+                 **kwargs):
+        super(SimSiamKD_OLMH_dimcollapsecheck, self).__init__(backbone, neck, head, init_cfg, **kwargs)
+
+    def forward_train(self, img, org_img):
+        """Forward computation during training.
+
+        Args:
+            img (list[Tensor]): A list of input images with shape
+                (N, C, H, W). Typically these should be mean centered
+                and std scaled.
+        Returns:
+            loss[str, Tensor]: A dictionary of loss components
+        """
+        assert isinstance(img, list)
+        self.teacher.eval()
+        img_v1 = img[0]
+        img_v2 = img[1]
+        org_img = org_img[0]
+
+
+        z1 = self.encoder(img_v1)[0]  # NxC
+        z2 = self.encoder(img_v2)[0]  # NxC
+
+        zt1 = self.teacher.encoder(img_v1)[0]
+        zt2 = self.teacher.encoder(img_v2)[0]
+
+        teacher_loss1 = self.teacher.head(zt1, zt2)['cossim'].detach()
+        teacher_loss2 = self.teacher.head(zt2, zt1)['cossim'].detach()
+
+        student_loss1 = self.head(z1, z2)['cossim']
+        student_loss2 = self.head(z2, z1)['cossim']
+
+        # for plotting loss
+        l_s1 = torch.mean(student_loss1)
+        l_s2 = torch.mean(student_loss2)
+        l_s = 1/2 * (l_s1 + l_s2).detach()
+        l_t = 1/2 * (torch.mean(teacher_loss1) + torch.mean(teacher_loss2)).detach()
+
+        index_lower1 = student_loss1 < teacher_loss1
+        index_lower2 = student_loss2 < teacher_loss2
+
+        index_higher1 = torch.bitwise_not(index_lower1)
+        index_higher2 = torch.bitwise_not(index_lower2)
+
+
+        # log frac
+        num1 = float(torch.nonzero(index_lower1).size(0))
+        num2 = float(torch.nonzero(index_lower2).size(0))
+        total_number = float(img_v1.size(0))
+        frac = (num1 + num2)/ (total_number * 2)
+        # put test here
+
+        # log image
+        if self.save_images:
+            images_lower1 = img[0][index_lower1]
+            images_lower1_proj = img[1][index_lower1]
+            images_higher1 = img[0][index_higher1]
+            images_higher2_proj = img[1][index_higher1]
+            ori_lower1 = org_img[index_lower1]
+            ori_higher1 = org_img[index_higher1]
+
+            set_1 = [images_lower1, images_lower1_proj, ori_lower1, student_loss1[index_lower1], teacher_loss1[index_lower1],
+                     images_higher1, images_higher2_proj, ori_higher1, student_loss1[index_higher1], teacher_loss1[index_higher1]]
+
+            images_lower2 = img[0][index_lower2]
+            images_lower2_proj = img[1][index_lower2]
+            images_higher2 = img[0][index_higher2]
+            images_higher2_proj = img[1][index_higher2]
+            ori_lower2 = org_img[index_lower2]
+            ori_higher2 = org_img[index_higher2]
+
+            set_2 = [images_lower2, images_lower2_proj, ori_lower2,  student_loss2[index_lower2], teacher_loss2[index_lower2],
+                     images_higher2, images_higher2_proj, ori_higher2, student_loss2[index_higher2], teacher_loss2[index_higher2]]
+        else:
+            set_1, set_2 = None, None
+
+
+
+        #loss 1
+        #image1
+        if student_loss1[index_higher1].shape[0] == 0:
+            loss1_stl1 = 0.0
+        else:
+            loss1_stl1 = torch.mean(student_loss1[index_higher1])
+        #image2
+        if student_loss2[index_higher2].shape[0] == 0:
+            loss1_stl2 = 0.0
+        else:
+            loss1_stl2 = torch.mean(student_loss2[index_higher2])
+        loss1 = 0.5 * (loss1_stl1 + loss1_stl2) #loss1 here
+
+        #loss 2
+        #image1
+        if student_loss1[index_lower1].shape[0] == 0:
+            loss2_stl1 = 0.0
+        else:
+            loss2_stl1 = nn.functional.mse_loss(student_loss1[index_lower1], teacher_loss1[index_lower1])
+        #image2
+        if student_loss2[index_lower2].shape[0] == 0:
+            loss2_stl2 = 0.0
+        else:
+            loss2_stl2 = nn.functional.mse_loss(student_loss2[index_lower2], teacher_loss2[index_lower2])
+        loss2 = 0.5 * (loss2_stl1 + loss2_stl2) #loss2 here
+
+        losses = loss1 + loss2
+        return dict(loss=losses, l_student=l_s, l_teacher=l_t, frac=torch.tensor(frac).cuda()), set_1, set_2
+
+    def train_step(self, data, optimizer, teacher_model, save_images):
+        """The iteration step during training.
+
+        This method defines an iteration step during training, except for the
+        back propagation and optimizer updating, which are done in an optimizer
+        hook. Note that in some complicated cases or models, the whole process
+        including back propagation and optimizer updating are also defined in
+        this method, such as GAN.
+
+        Args:
+            data (dict): The output of dataloader.
+            optimizer (:obj:`torch.optim.Optimizer` | dict): The optimizer of
+                runner is passed to ``train_step()``. This argument is unused
+                and reserved.
+
+        Returns:
+            dict: Dict of outputs. The following fields are contained.
+                - loss (torch.Tensor): A tensor for back propagation, which \
+                    can be a weighted sum of multiple losses.
+                - log_vars (dict): Dict contains all the variables to be sent \
+                    to the logger.
+                - num_samples (int): Indicates the batch size (when the model \
+                    is DDP, it means the batch size on each GPU), which is \
+                    used for averaging the logs.
+        """
+        if self.teacher is None:
+            self.teacher = teacher_model
+
+        self.save_images = save_images[0]
+        losses, set_1, set_2 = self(**data)
+        loss, log_vars = self._parse_losses(losses)
+
+        if isinstance(data['img'], list):
+            num_samples = len(data['img'][0].data)
+        else:
+            num_samples = len(data['img'].data)
+        outputs = dict(loss=loss, log_vars=log_vars, num_samples=num_samples)
+
+        return outputs, set_1, set_2
+
+
+@ALGORITHMS.register_module()
+class SimSiam_dimcollapsecheck(SimSiamKD_OLMH_dimcollapsecheck): # optimize lower, minimize Higher
+    def __init__(self,
+                 backbone,
+                 neck=None,
+                 head=None,
+                 init_cfg=None,
+                 **kwargs):
+        super(SimSiam_dimcollapsecheck, self).__init__(backbone, neck, head, init_cfg, **kwargs)
+
+    def forward_train(self, img, org_img):
+        """Forward computation during training.
+
+        Args:
+            img (list[Tensor]): A list of input images with shape
+                (N, C, H, W). Typically these should be mean centered
+                and std scaled.
+        Returns:
+            loss[str, Tensor]: A dictionary of loss components
+        """
+        assert isinstance(img, list)
+        self.teacher.eval()
+        img_v1 = img[0]
+        img_v2 = img[1]
+        org_img = org_img[0]
+
+
+        z1 = self.encoder(img_v1)[0]  # NxC
+        z2 = self.encoder(img_v2)[0]  # NxC
+
+        zt1 = self.teacher.encoder(img_v1)[0]
+        zt2 = self.teacher.encoder(img_v2)[0]
+
+        teacher_loss1 = self.teacher.head(zt1, zt2)['cossim'].detach()
+        teacher_loss2 = self.teacher.head(zt2, zt1)['cossim'].detach()
+
+        student_loss1 = self.head(z1, z2)['cossim']
+        student_loss2 = self.head(z2, z1)['cossim']
+
+        # for plotting loss
+        l_s1 = torch.mean(student_loss1)
+        l_s2 = torch.mean(student_loss2)
+        l_s = 1/2 * (l_s1 + l_s2).detach()
+        l_t = 1/2 * (torch.mean(teacher_loss1) + torch.mean(teacher_loss2)).detach()
+
+        index_lower1 = student_loss1 < teacher_loss1
+        index_lower2 = student_loss2 < teacher_loss2
+
+        index_higher1 = torch.bitwise_not(index_lower1)
+        index_higher2 = torch.bitwise_not(index_lower2)
+
+
+        # log frac
+        num1 = float(torch.nonzero(index_lower1).size(0))
+        num2 = float(torch.nonzero(index_lower2).size(0))
+        total_number = float(img_v1.size(0))
+        frac = (num1 + num2)/ (total_number * 2)
+        # put test here
+
+        # log image
+        if self.save_images:
+            images_lower1 = img[0][index_lower1]
+            images_lower1_proj = img[1][index_lower1]
+            images_higher1 = img[0][index_higher1]
+            images_higher2_proj = img[1][index_higher1]
+            ori_lower1 = org_img[index_lower1]
+            ori_higher1 = org_img[index_higher1]
+
+            set_1 = [images_lower1, images_lower1_proj, ori_lower1, student_loss1[index_lower1], teacher_loss1[index_lower1],
+                     images_higher1, images_higher2_proj, ori_higher1, student_loss1[index_higher1], teacher_loss1[index_higher1]]
+
+            images_lower2 = img[0][index_lower2]
+            images_lower2_proj = img[1][index_lower2]
+            images_higher2 = img[0][index_higher2]
+            images_higher2_proj = img[1][index_higher2]
+            ori_lower2 = org_img[index_lower2]
+            ori_higher2 = org_img[index_higher2]
+
+            set_2 = [images_lower2, images_lower2_proj, ori_lower2,  student_loss2[index_lower2], teacher_loss2[index_lower2],
+                     images_higher2, images_higher2_proj, ori_higher2, student_loss2[index_higher2], teacher_loss2[index_higher2]]
+        else:
+            set_1, set_2 = None, None
+
+        loss1 = torch.mean(student_loss1)
+        loss2 = torch.mean(student_loss2)
+
+        losses = 1/2 * (loss1 + loss2)
+        return dict(loss=losses, l_student=l_s, l_teacher=l_t, frac=torch.tensor(frac).cuda()), set_1, set_2

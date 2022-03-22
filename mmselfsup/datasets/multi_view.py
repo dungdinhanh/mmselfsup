@@ -2,6 +2,7 @@
 import torch
 from mmcv.utils import build_from_cfg
 from torchvision.transforms import Compose
+from torchvision import transforms as T
 
 from .base import BaseDataset
 from .builder import DATASETS, PIPELINES, build_datasource
@@ -118,6 +119,57 @@ class MultiViewDatasetwNegative(MultiViewDataset):
             ]
 
         return dict(img=all_views)
+
+    def evaluate(self, results, logger=None):
+        return NotImplemented
+
+@DATASETS.register_module()
+class MultiViewDatasetwOriginal(MultiViewDataset):
+    """The dataset outputs multiple views of an image, and a view of a different batch.
+
+    The number of views in the output dict depends on `num_views`. The
+    image can be processed by one pipeline or multiple piepelines.
+
+    Args:
+        data_source (dict): Data source defined in
+            `mmselfsup.datasets.data_sources`.
+        num_views (list): The number of different views.
+        pipelines (list[list[dict]]): A list of pipelines, where each pipeline
+            contains elements that represents an operation defined in
+            `mmselfsup.datasets.pipelines`.
+        prefetch (bool, optional): Whether to prefetch data. Defaults to False.
+
+    Examples:
+        >>> dataset = MultiViewDataset(data_source, [2], [pipeline])
+        >>> output = dataset[idx]
+        The output got 2 views processed by one pipeline.
+
+        >>> dataset = MultiViewDataset(
+        >>>     data_source, [2, 6], [pipeline1, pipeline2])
+        >>> output = dataset[idx]
+        The output got 8 views processed by two pipelines, the first two views
+        were processed by pipeline1 and the remaining views by pipeline2.
+    """
+
+    def __init__(self, data_source, num_views, pipelines, prefetch=False):
+        super(MultiViewDatasetwOriginal, self).__init__(data_source, num_views, pipelines, prefetch)
+        self.num_images = len(self.data_source)
+        print("Total number of images: %d"%self.num_images)
+        self.ori_transform = Compose([T.ToTensor(), T.Normalize(mean=[0.485, 0.456, 0.406],
+                                                                std=[0.229, 0.224, 0.225]),
+                                      T.CenterCrop(size=256)]
+                                     )
+    def __getitem__(self, idx):
+        img = self.data_source.get_img(idx)
+        multi_views = list(map(lambda trans: trans(img), self.trans))
+        img_org = self.ori_transform(self.data_source.get_img(idx))
+        all_views = multi_views
+        if self.prefetch:
+            all_views = [
+                torch.from_numpy(to_numpy(img)) for img in multi_views
+            ] + [torch.from_numpy(to_numpy(img_org))]
+
+        return dict(img=all_views, org_img=[img_org])
 
     def evaluate(self, results, logger=None):
         return NotImplemented

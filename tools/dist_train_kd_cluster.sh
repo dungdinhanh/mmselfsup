@@ -3,7 +3,7 @@
 USER=$1
 CONFIG=$2
 GPUS=$3
-PORT=${PORT:-29506}
+PORT=${PORT:-29507}
 PYTHON=${PYTHON:-"/home/users/${USER}/.conda/envs/openss/bin/python3.8"}
 WORK_DIR="$(echo ${CONFIG%.*} | sed -e "s/configs/work_dirs/g")/"
 AWORK_DIR="../../scratch/dso/openss/${WORK_DIR}"

@@ -11,7 +11,7 @@ from .relative_loc import RelativeLoc
 from .rotation_pred import RotationPred
 from .simclr import SimCLR
 
-from .simsiam import SimSiam, SimSiamVis, SimSiamLogMin
+from .simsiam import SimSiam, SimSiamVis, SimSiamLogMin, SimSiamL
 
 from .swav import SwAV
 from .simsiam_kd import SimSiamKD, SimSiamKDZT, SimSiamKD_PredMatching, SimSiamKD_GT, SimSiamKD_wNeg,\
@@ -28,5 +28,5 @@ __all__ = [
     'SimSiamKD_PoswMinT', 'SimDis_Siam_nogt_sim_pred', 'SimDis_Siam_nogt_cross_pred',
     'SimDis_Siam_nogt_cross_proj', 'SimDis_Siam_nogt_sim_proj', 'SimDis_Siam_poskd_cross_pred',
     'SimDis_Siam_poskd_sim_pred', 'SimDis_Siam_poskd_cross_proj', 'SimDis_Siam_poskd_sim_proj',
-    'SimSiamLogMin', 'SimSiamKDMinIter', 'SimSiamKDMinEpoch', 'SimSiamVis'
+    'SimSiamLogMin', 'SimSiamKDMinIter', 'SimSiamKDMinEpoch', 'SimSiamVis', 'SimSiamL'
 ]

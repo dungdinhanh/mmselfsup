@@ -96,7 +96,7 @@ class SimSiamL(BaseModel):
                  head=None,
                  init_cfg=None,
                  **kwargs):
-        super(SimSiam, self).__init__(init_cfg)
+        super(SimSiamL, self).__init__(init_cfg)
         assert neck is not None
         self.encoder = nn.Sequential(
             build_backbone(backbone), build_neck(neck))
