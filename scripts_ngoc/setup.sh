@@ -50,3 +50,6 @@ cmd="/home/users/$USER/.conda/envs/openss/bin/pip install pandas"
 echo ${cmd}
 eval ${cmd}
 
+cmd="/home/users/$USER/.conda/envs/openss/bin/pip install lpips"
+echo ${cmd}
+eval ${cmd}

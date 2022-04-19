@@ -18,6 +18,9 @@ from .simsiam_kd import SimSiamKD, SimSiamKDZT, SimSiamKD_PredMatching, SimSiamK
     SimDis_Siam_simplified, SimSiamKD_PoswNeg, SimDis_PoswNeg, SimDis_Pos, SimDis_wNeg
 from .simsiam_kd_test import *
 from .simdis_kd_test import *
+from .simsiam_kd_test2 import *
+
+
 __all__ = [
     'BaseModel', 'BYOL', 'Classification', 'DeepCluster',
     'DenseCL', 'MoCo', 'NPID', 'ODC', 'RelativeLoc',
