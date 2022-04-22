@@ -60,6 +60,7 @@ def save_log_images(set_n, folder, epoch):
         draw = ImageDraw.Draw(save_image)
         draw.text((grid + 3, height + 2), caption, font=font, fill="black")
         save_image.save(os.path.join(saved_folder_low, "image_set%d_%d.png"%(i, torch.cuda.current_device())))
+        save_image.close()
 
     for i in range(num_high):
         grid = higher_info[2].size(2)
@@ -75,7 +76,7 @@ def save_log_images(set_n, folder, epoch):
         draw = ImageDraw.Draw(save_imageh)
         draw.text((grid + 3, height + 2), caption, font=font, fill="black")
         save_imageh.save(os.path.join(saved_folder_high, "image_set%d_%d.png"%(i, torch.cuda.current_device())))
-
+        save_imageh.close()
 
 
 
@@ -117,6 +118,7 @@ class KDBasedRunnerSaveImages(BaseRunner):
                                             **kwargs)
             if self.save_images:
                 save_log_images(set_1, self.work_dir, self.epoch)
+                set_1, set_2 = None, None
         else:
             outputs = self.model.val_step(data_batch, self.optimizer, **kwargs)
         if not isinstance(outputs, dict):

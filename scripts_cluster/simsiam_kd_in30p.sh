@@ -3,7 +3,7 @@
 #PBS -N ss_in30
 #PBS -j oe
 #PBS -o log/simsiam_kd_in30.log
-#PBS -q project
+#PBS -q gold
 #PBS -v CONTAINER_IMAGE=nvcr.io/nvidia/pytorch:20.06-py3
 
 echo "CONTAINER_IMAGE=nvcr.io/nvidia/pytorch:20.06-py3"
@@ -12,7 +12,7 @@ echo "CONTAINER_IMAGE=nvcr.io/nvidia/pytorch:20.06-py3"
 cd "$PBS_O_WORKDIR" || exit $?
 echo ${PBS_O_WORKDIR}
 
-USER=dinh_anh_dung # Replace with your own HPC account name
+USER=anhdung_dinh # Replace with your own HPC account name
 
 nvidia-smi
 

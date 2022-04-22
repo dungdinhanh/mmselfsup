@@ -227,10 +227,10 @@ class SimSiam_dimcollapsecheckLPIPS_fixedfirstview(SimSiam_dimcollapsecheckLPIPS
 
         # log image
         if self.save_images:
-            images_lower1 = img[0][index_lower1]
-            images_lower1_proj = img[1][index_lower1]
-            images_higher1 = img[0][index_higher1]
-            images_higher2_proj = img[1][index_higher1]
+            images_lower1 = img_v1[index_lower1]
+            images_lower1_proj = img_v2[index_lower1]
+            images_higher1 = img_v1[index_higher1]
+            images_higher2_proj = img_v2[index_higher1]
             ori_lower1 = org_img[index_lower1]
             ori_higher1 = org_img[index_higher1]
 
@@ -341,10 +341,10 @@ class SimSiam_dimcollapsecheckLPIPS_fixedsecondview(SimSiam_dimcollapsecheckLPIP
 
         # log image
         if self.save_images:
-            images_lower1 = img[0][index_lower1]
-            images_lower1_proj = img[1][index_lower1]
-            images_higher1 = img[0][index_higher1]
-            images_higher2_proj = img[1][index_higher1]
+            images_lower1 = img_v1[index_lower1]
+            images_lower1_proj = img_v2[index_lower1]
+            images_higher1 = img_v1[index_higher1]
+            images_higher2_proj = img_v2[index_higher1]
             ori_lower1 = org_img[index_lower1]
             ori_higher1 = org_img[index_higher1]
 
