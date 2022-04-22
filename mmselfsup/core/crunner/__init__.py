@@ -5,4 +5,4 @@ from .kd_based_runner_saveimage import *
 from .kd_based_runner_saveimage_all import *
 
 __all__ = ['KDBasedRunner', 'EpochBasedRunnerLogMin', 'KDBasedRunnerReadIter', 'KDBasedRunnerSaveImages',
-           'KDBasedRunnerSaveImagesAll']
+           'KDBasedRunnerSaveImagesAll', 'KDBasedRunnerSaveImagesAllLPIPS', 'KDBasedRunnerSaveImagesAllLPIPS2']

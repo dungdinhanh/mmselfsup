@@ -1,8 +1,8 @@
 #PBS -l select=1:ncpus=20:ngpus=4
 #PBS -l walltime=100:00:00
-#PBS -N OLMH
+#PBS -N analysis_simsiam1st
 #PBS -j oe
-#PBS -o log/olmh_dimcollapse.log
+#PBS -o log/analysis_simsiam_fix1st.log
 #PBS -q gold
 #PBS -v CONTAINER_IMAGE=nvcr.io/nvidia/pytorch:20.06-py3
 
@@ -19,7 +19,7 @@ nvidia-smi
 export PYTHONPATH=/home/users/$USER/sutddev/mmselfsup/:$PYTHONPATH
 
 cmd="bash tools/dist_train_kd_cluster.sh ${USER} \
-configs/selfsup/simsiam_kd_test/simsiam_dimcollapse_checkall_resnet18_4xb64-coslr-200e_in1p5r.py 4 \
+configs/selfsup/simsiam_kd_test/simsiam_dimcollapse_fix1stview_resnet18_4xb64-coslr-200e_in1p1r.py 4 \
 --teacher_path ../../scratch/dso/openss/work_dirs/selfsup/simsiam/simsiam_resnet50_4xb64-coslr-200e_in30p/epoch_200.pth"
 echo ${cmd}
 eval ${cmd}
