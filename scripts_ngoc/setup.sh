@@ -27,28 +27,28 @@ echo ${cmd}
 
 cmd="/home/users/$USER/.conda/envs/openss/bin/pip install torch==1.9.0 torchvision==0.10.0 torchaudio==0.9.0"
 echo ${cmd}
-eval ${cmd}
+#eval ${cmd}
 
 cmd="/home/users/$USER/.conda/envs/openss/bin/pip install  -v -e ."
 echo ${cmd}
-eval ${cmd}
+#eval ${cmd}
 
 cmd="/home/users/$USER/.conda/envs/openss/bin/pip install opencv-python-headless"
 echo ${cmd}
-eval ${cmd}
+#eval ${cmd}
 
 cmd="/home/users/$USER/.conda/envs/openss/bin/pip install  mmcv==1.4.0"
 echo ${cmd}
-eval ${cmd}
+#eval ${cmd}
 
 
 cmd="/home/users/$USER/.conda/envs/openss/bin/pip install  mmsegmentation mmdet"
 echo ${cmd}
-eval ${cmd}
+#eval ${cmd}
 
 cmd="/home/users/$USER/.conda/envs/openss/bin/pip install pandas"
 echo ${cmd}
-eval ${cmd}
+#eval ${cmd}
 
 cmd="/home/users/$USER/.conda/envs/openss/bin/pip install lpips"
 echo ${cmd}
