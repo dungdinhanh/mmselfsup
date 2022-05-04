@@ -21,3 +21,5 @@ optimizer = dict(lr=lr, paramwise_options={'predictor': dict(fix_lr=True)})
 # if it is 3, when CheckpointHook (in mmcv) saves the 4th ckpt
 # it will remove the oldest one to keep the number of total ckpts as 3
 checkpoint_config = dict(interval=10, max_keep_ckpts=3)
+
+resume_from="../../scratch/dso/openss/work_dirs/selfsup/simsiam_kd_test/simsiamkd_olmh_resnet18_4xb64-coslr-200e_in30p/latest.pth"
