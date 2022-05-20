@@ -90,6 +90,7 @@ class EpochBasedRunnerLogMin(EpochBasedRunner):
         self.current_min_loss_epoch2 = self.current_min_loss_iter2
         self.min_loss_epoch.append([self.current_min_loss_epoch1, self.current_min_loss_iter2])
         self.f.write("%d, %f, %f\n"%(self._epoch, self.current_min_loss_epoch1, self.current_min_loss_epoch2))
+        self.f.flush()
         self.current_min_loss_epoch1 = self.MAX_VAL
         self.current_min_loss_epoch2 = self.MAX_VAL
         self.current_min_loss_iter1 = self.MAX_VAL
